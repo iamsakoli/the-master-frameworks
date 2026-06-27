@@ -225,8 +225,9 @@ const SYSTEMS = [
     ex:"TWITTER · INSTAGRAM · REDDIT", tag:"Feeds built from a social graph — the fan-out problem, ranked timelines, and the celebrity edge case.",
     mer:`flowchart TB
   CL["Clients<br/><span class='lat'>scroll · post</span>"]
-  GW["Feed API Gateway<br/><span class='lat'>~3 ms</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   CDN["CDN · media<br/><span class='lat'>~15 ms</span>"]
+  GW["Feed API Gateway<br/><span class='lat'>~3 ms</span>"]
   FEED["Feed Service<br/><span class='lat'>~20 ms</span>"]
   POST["Post / Write Service<br/><span class='lat'>~15 ms</span>"]
   RANK["Ranking Service<br/><span class='lat'>~30 ms ML</span>"]
@@ -236,13 +237,14 @@ const SYSTEMS = [
   GRAPH[("Social Graph DB<br/><span class='lat'>~5 ms</span>")]
   TL[("Timeline Store<br/>wide-column<br/><span class='lat'>~8 ms</span>")]
   OBJ[("Object Store<br/><span class='lat'>20–50 ms</span>")]
-  CL -->|GET feed| GW
-  CL -->|load media| CDN
+  CL -->|HTTPS| DNS
+  DNS -->|resolve| CDN
+  CDN -->|API route| GW
   GW -->|read timeline| FEED
   GW -->|publish| POST
   POST -->|edge lookup| GRAPH
   POST -->|upload| OBJ
-  OBJ -->|cache fill| CDN
+  OBJ -->|origin fill| CDN
   POST -->|enqueue| FQ
   FQ -->|consume| FW
   FW -->|insert post id| TL
@@ -251,7 +253,7 @@ const SYSTEMS = [
   FEED -->|who to merge| GRAPH
   FEED -->|score| RANK
   RANK -->|ranked ids| FEED`,
-    core:["CDN","FEED","FQ","FW","TL","GRAPH","CACHE","RANK"],
+    core:["DNS","CDN","FEED","FQ","FW","TL","GRAPH","CACHE","RANK"],
     xcut:["Eventual consistency OK","Hot-key mitigation","Fan-out strategy","Read path > write path"],
     prims:[2,3,5,7],
     hard:[
@@ -269,6 +271,7 @@ const SYSTEMS = [
     ex:"WHATSAPP · SLACK · DISCORD", tag:"Millions of persistent connections, presence, and ordered, at-least-once delivery.",
     mer:`flowchart TB
   CL["Sender client<br/><span class='lat'>persistent WS</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   LB["L4 Load Balancer<br/>WebSocket<br/><span class='lat'>~1 ms</span>"]
   CG["Conn Gateway<br/>WS termination<br/><span class='lat'>~1 ms</span>"]
   SR["Session Registry<br/><span class='lat'>~1 ms</span>"]
@@ -282,7 +285,8 @@ const SYSTEMS = [
   MS[("Message Store<br/>by conversation<br/><span class='lat'>~8 ms</span>")]
   CG2["Recipient Conn Gateway<br/><span class='lat'>~1 ms</span>"]
   RC["Recipient<br/><span class='lat'>~30 ms e2e</span>"]
-  CL -->|send| LB
+  CL -->|HTTPS/WS| DNS
+  DNS -->|resolve| LB
   LB -->|sticky conn| CG
   CG -->|register| SR
   CG -->|route msg| ROUTE
@@ -296,7 +300,7 @@ const SYSTEMS = [
   ROUTE -->|offline?| DQ
   DQ -->|wake| PUSH
   PUSH -->|notify| RC`,
-    core:["LB","CG","SR","ROUTE","SEQ","PS","PUB","DQ","PUSH","MS"],
+    core:["DNS","LB","CG","SR","ROUTE","SEQ","PS","PUB","DQ","PUSH","MS"],
     xcut:["Sticky connections","Ordering guarantees","At-least-once + dedup","Offline sync"],
     prims:[1,2,6,7],
     hard:[
@@ -314,6 +318,8 @@ const SYSTEMS = [
     ex:"UBER · AIRBNB · TICKETMASTER", tag:"Geospatial matching + transactional inventory — where double-booking is the cardinal sin.",
     mer:`flowchart TB
   CL["Clients<br/><span class='lat'>search · book</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
+  CDN["CDN · edge shield<br/><span class='lat'>~5 ms</span>"]
   WR["Virtual Waiting Room<br/><span class='lat'>wait: s–min</span>"]
   GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
   SEARCH["Matching / Search<br/><span class='lat'>~20 ms</span>"]
@@ -325,7 +331,9 @@ const SYSTEMS = [
   DB[("Transactional DB<br/>strong consistency<br/><span class='lat'>~10 ms</span>")]
   LED[("Payments Ledger<br/><span class='lat'>~8 ms</span>")]
   HOLD["Reservation TTL Queue<br/><span class='lat'>TTL 2–10 min</span>"]
-  CL -->|enter| WR
+  CL -->|HTTPS| DNS
+  DNS -->|resolve| CDN
+  CDN -->|route| WR
   WR -->|admit| GW
   GW -->|nearby?| SEARCH
   SEARCH -->|geo query| GEO
@@ -337,7 +345,7 @@ const SYSTEMS = [
   PAY -->|record| LED
   INV -->|set hold| HOLD
   HOLD -. expire .-> INV`,
-    core:["WR","SEARCH","GEO","BOOK","INV","DB","PRICE","HOLD"],
+    core:["DNS","CDN","WR","SEARCH","GEO","BOOK","INV","DB","PRICE","HOLD"],
     xcut:["Strong consistency (inventory)","Optimistic / pessimistic locks","Saga vs 2PC","Shard by geography"],
     prims:[0,2,5,1],
     hard:[
@@ -356,6 +364,7 @@ const SYSTEMS = [
     mer:`flowchart TB
   RIDER["Rider app<br/><span class='lat'>request · track</span>"]
   DRIVER["Driver app<br/><span class='lat'>GPS ping ~4 s</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
   LOCING["Location Ingest<br/>GPS firehose<br/><span class='lat'>~2 ms · M/s</span>"]
   GEO[("Geospatial Index<br/>S2 / QuadTree<br/><span class='lat'>~5 ms kNN</span>")]
@@ -367,9 +376,11 @@ const SYSTEMS = [
   STREAM["Location Stream<br/>pub/sub<br/><span class='lat'>~50 ms push</span>"]
   TRIPDB[("Trip Store<br/><span class='lat'>~8 ms</span>")]
   PAYLED[("Payments Ledger<br/><span class='lat'>~8 ms</span>")]
-  DRIVER -->|GPS ping| LOCING
+  RIDER -->|HTTPS| DNS
+  DRIVER -->|GPS ping| DNS
+  DNS -->|ride request| GW
+  DNS -->|GPS ingest| LOCING
   LOCING -->|update cell| GEO
-  RIDER -->|request ride| GW
   GW -->|find nearby| MATCH
   MATCH -->|kNN query| GEO
   MATCH -->|quote| SURGE
@@ -380,7 +391,7 @@ const SYSTEMS = [
   STREAM -->|push| RIDER
   TRIP -->|charge| PAY
   PAY -->|record| PAYLED`,
-    core:["LOCING","GEO","MATCH","TRIP","ETA","SURGE","STREAM"],
+    core:["DNS","LOCING","GEO","MATCH","TRIP","ETA","SURGE","STREAM"],
     xcut:["Shard by city / geohash","kNN matching","Real-time location stream","Write-heavy GPS ingest"],
     prims:[2,5,7,3],
     hard:[
@@ -399,8 +410,9 @@ const SYSTEMS = [
     mer:`flowchart TB
   UP["Uploader · chunked<br/><span class='lat'>resumable</span>"]
   VW["Viewer / Player<br/><span class='lat'>HLS / DASH</span>"]
-  GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   CDN["CDN / edge cache<br/><span class='lat'>~15 ms TTFB</span>"]
+  GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
   WS["Write Service<br/><span class='lat'>~30 ms / chunk</span>"]
   RS["Read Service<br/><span class='lat'>~5 ms</span>"]
   META["Metadata Service<br/><span class='lat'>~5 ms</span>"]
@@ -410,10 +422,11 @@ const SYSTEMS = [
   MDB[("Metadata DB<br/>sharded<br/><span class='lat'>~6 ms</span>")]
   CHUNK[("Chunk Index<br/>content-addressed<br/><span class='lat'>~3 ms</span>")]
   OBJ[("Object Store<br/>EC / replicated<br/><span class='lat'>20–60 ms</span>")]
-  UP -->|PUT chunks| GW
+  UP -->|HTTPS| DNS
+  VW -->|HTTPS| DNS
+  DNS -->|upload route| GW
+  DNS -->|media route| CDN
   GW -->|write| WS
-  VW -->|GET segment| CDN
-  GW -->|read| RS
   WS -->|map chunks| META
   META -->|persist| MDB
   WS -->|dedup hash| CHUNK
@@ -421,11 +434,12 @@ const SYSTEMS = [
   WS -->|enqueue| TQ
   TQ -->|consume| TW
   TW -->|write renditions| OBJ
+  CDN -. miss .-> RS
   RS -->|resolve| META
   RS -->|hot?| HC
   RS -->|fetch| OBJ
   OBJ -->|origin pull| CDN`,
-    core:["CDN","WS","RS","META","MDB","CHUNK","OBJ","TQ"],
+    core:["DNS","CDN","WS","RS","META","MDB","CHUNK","OBJ","TQ"],
     xcut:["Split read/write services","Erasure coding / replication","Content-addressed dedup","CDN offload"],
     prims:[0,2,4,7],
     hard:[
@@ -443,6 +457,8 @@ const SYSTEMS = [
     ex:"GOOGLE · ELASTICSEARCH · RECS", tag:"Inverted indexes at TB scale — scatter-gather query serving, multi-tier ranking, and freshness.",
     mer:`flowchart TB
   CL["Clients<br/><span class='lat'>query</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
+  CDN["CDN · edge cache<br/><span class='lat'>~5 ms</span>"]
   LB["Global LB<br/><span class='lat'>~1 ms</span>"]
   QS["Query Service<br/><span class='lat'>~5 ms</span>"]
   QC["Query Cache<br/><span class='lat'>~1 ms</span>"]
@@ -454,7 +470,9 @@ const SYSTEMS = [
   VEC[("Vector DB<br/><span class='lat'>~15 ms ANN</span>")]
   CRAWL["Crawler / Ingestion<br/><span class='lat'>async</span>"]
   IDXER["Indexer<br/><span class='lat'>build</span>"]
-  CL -->|search| LB
+  CL -->|search| DNS
+  DNS -->|resolve| CDN
+  CDN -->|cache miss| LB
   LB -->|route| QS
   QS -->|lookup| QC
   QC -. miss .-> SCAT
@@ -467,7 +485,7 @@ const SYSTEMS = [
   IDXER -->|write| S1
   IDXER -->|write| S2
   IDXER -->|write| S3`,
-    core:["QS","QC","SCAT","S1","S2","S3","RANK","VEC","IDXER"],
+    core:["DNS","CDN","QS","QC","SCAT","S1","S2","S3","RANK","VEC","IDXER"],
     xcut:["Index sharding + replication","Scatter-gather tail latency","Freshness vs size","Cache popular queries"],
     prims:[5,2,3,6],
     hard:[
@@ -485,6 +503,7 @@ const SYSTEMS = [
     ex:"STRIPE · LEDGERS · EXCHANGES", tag:"Correctness over availability — idempotent money movement, double-entry ledgers, deterministic low-latency matching.",
     mer:`flowchart TB
   CL["Clients / Partners<br/><span class='lat'>pay · order</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   GW["Payment / Order Gateway<br/><span class='lat'>~3 ms</span>"]
   IDEM["Idempotency Layer<br/><span class='lat'>~2 ms</span>"]
   RISK["Risk / Fraud<br/><span class='lat'>~10 ms</span>"]
@@ -495,7 +514,8 @@ const SYSTEMS = [
   RM[("Read Models<br/><span class='lat'>~2 ms</span>")]
   SETTLE["Settlement Queue<br/><span class='lat'>~3 ms</span>"]
   SS["Settlement<br/><span class='lat'>batch · hrs</span>"]
-  CL -->|request| GW
+  CL -->|request| DNS
+  DNS -->|resolve| GW
   GW -->|dedupe key| IDEM
   IDEM -->|check| RISK
   RISK -->|post entries| LEDGER
@@ -507,7 +527,7 @@ const SYSTEMS = [
   ES -->|enqueue| SETTLE
   SETTLE -->|clear| SS
   GW -->|read balance| RM`,
-    core:["GW","IDEM","RISK","LEDGER","MATCH","ES","PROJ","SETTLE"],
+    core:["DNS","GW","IDEM","RISK","LEDGER","MATCH","ES","PROJ","SETTLE"],
     xcut:["Consistency > availability (CP)","Idempotency keys","Event sourcing + CQRS","Single-writer per account"],
     prims:[1,2,7,5],
     hard:[
@@ -563,6 +583,7 @@ const SYSTEMS = [
     mer:`flowchart TB
   CL1["Editor A<br/><span class='lat'>edits</span>"]
   CL2["Editor B<br/><span class='lat'>edits</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   WS["WebSocket Gateway<br/><span class='lat'>~1 ms</span>"]
   SESSION["Session / Room<br/><span class='lat'>~2 ms</span>"]
   OT["OT / CRDT Engine<br/><span class='lat'>~5 ms</span>"]
@@ -570,8 +591,9 @@ const SYSTEMS = [
   LOG[("Op Log · append-only<br/><span class='lat'>~5 ms</span>")]
   SNAP[("Snapshot Store<br/><span class='lat'>~10 ms</span>")]
   PERSIST["Persistence / Save<br/><span class='lat'>async</span>"]
-  CL1 -->|edit op| WS
-  CL2 -->|edit op| WS
+  CL1 -->|HTTPS/WS| DNS
+  CL2 -->|HTTPS/WS| DNS
+  DNS -->|resolve| WS
   WS -->|join| SESSION
   WS -->|apply| OT
   OT -->|order op| LOG
@@ -579,7 +601,7 @@ const SYSTEMS = [
   WS -->|cursor| PRESENCE
   LOG -->|compact| SNAP
   SNAP -->|persist| PERSIST`,
-    core:["WS","SESSION","OT","LOG","SNAP"],
+    core:["DNS","WS","SESSION","OT","LOG","SNAP"],
     xcut:["OT vs CRDT","Total op ordering","Presence + cursors","Snapshot + replay"],
     prims:[0,2,7,3],
     hard:[
@@ -597,6 +619,8 @@ const SYSTEMS = [
     ex:"GOOGLE DOCS · WORD · NOTION", tag:"The document platform behind the editor — autosave, version history, comments, permissions, search and export.",
     mer:`flowchart TB
   CL["Editor client<br/><span class='lat'>type · render</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
+  CDN["CDN · edge<br/><span class='lat'>~5 ms</span>"]
   GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
   ACL["Permissions / Sharing<br/>ACL<br/><span class='lat'>~4 ms</span>"]
   DOCSVC["Document Service<br/><span class='lat'>~8 ms</span>"]
@@ -608,7 +632,9 @@ const SYSTEMS = [
   DOCDB[("Document Store<br/>block / op model<br/><span class='lat'>~6 ms</span>")]
   VERDB[("Version Store<br/>append-only<br/><span class='lat'>~8 ms</span>")]
   BLOB[("Object Store<br/>attachments<br/><span class='lat'>~30 ms</span>")]
-  CL -->|open / edit| GW
+  CL -->|HTTPS| DNS
+  DNS -->|resolve| CDN
+  CDN -->|API route| GW
   GW -->|check access| ACL
   GW -->|CRUD| DOCSVC
   DOCSVC -->|read / write| DOCDB
@@ -622,7 +648,7 @@ const SYSTEMS = [
   COMMENT -->|store| DOCDB
   GW -->|export| RENDER
   RENDER -->|fetch| DOCDB`,
-    core:["DOCSVC","DOCDB","VERSION","VERDB","ACL","SEARCH"],
+    core:["DNS","CDN","DOCSVC","DOCDB","VERSION","VERDB","ACL","SEARCH"],
     xcut:["Block / operational doc model","Autosave + debounce","Snapshots + diffs","ACL on every access"],
     prims:[0,2,5,3],
     hard:[
@@ -642,6 +668,7 @@ const BLOCKS = [
     ex:"DISTRIBUTED · TOKEN BUCKET", tag:"Throttle requests per key without adding latency — a local-first counter backed by an atomic central store.",
     mer:`flowchart TB
   CL["Clients<br/><span class='lat'>requests</span>"]
+  DNS["GeoDNS<br/><span class='lat'>~1 ms</span>"]
   LB["Load Balancer<br/><span class='lat'>~1 ms</span>"]
   GW["API Gateway / Edge<br/><span class='lat'>~2 ms</span>"]
   LIM["Rate Limiter<br/>token bucket<br/><span class='lat'>~0.1 ms</span>"]
@@ -650,7 +677,8 @@ const BLOCKS = [
   REDIS[("Central Store<br/>Redis counters<br/><span class='lat'>~0.5 ms</span>")]
   SVC["Backend Service<br/><span class='lat'>protected</span>"]
   REJECT["429 Too Many Requests<br/><span class='lat'>reject</span>"]
-  CL -->|HTTP| LB
+  CL -->|HTTP| DNS
+  DNS -->|resolve| LB
   LB -->|route| GW
   GW -->|check| LIM
   LIM -->|fast path| LOCAL
@@ -659,7 +687,7 @@ const BLOCKS = [
   LUA -->|INCR| REDIS
   LIM -->|allow| SVC
   LIM -->|deny| REJECT`,
-    core:["LIM","LOCAL","LUA","REDIS"],
+    core:["DNS","LB","LIM","LOCAL","LUA","REDIS"],
     xcut:["Token / leaky / sliding window","Atomic counter ops","Local-first two-tier","Fail-open vs fail-closed"],
     prims:[3,2,4,6],
     hard:[
@@ -806,8 +834,9 @@ master:[
 ],
 social:[
 ["Clients","","Post, scroll and refresh feeds.","Refresh storms create read amplification.","Aggressive client caching vs feed staleness."],
+["GeoDNS","Geographic DNS","Steer each client to the nearest CDN PoP or region.","DNS TTL caching slows failover; propagation lag.","Low TTL = faster failover but more DNS query volume."],
 ["Feed API Gateway","API Gateway","Entry for read-heavy feed and write traffic.","Spiky read amplification on refresh.","Central control vs an extra hop."],
-["CDN · media","Content Delivery Network","Serve photos and video from the edge.","Long-tail / cold media has low hit rate.","Latency win vs invalidation and cost."],
+["CDN · media","Content Delivery Network","Serve photos and video from the edge; CDN sits between DNS and gateway.","Long-tail / cold media has low hit rate.","Latency win vs invalidation and cost."],
 ["Feed Service","","Assemble and order a user's timeline.","On-read merge cost for users following many accounts.","Precompute (write cost) vs on-read merge (read cost)."],
 ["Post / Write Service","","Persist a post and trigger fan-out.","Write amplification scales with follower count.","Sync fan-out (consistent) vs async (eventual, scalable)."],
 ["Ranking Service","","Score posts by recency, affinity and ML signals.","Scoring latency added to feed-load p99.","Higher engagement vs added latency and infra cost."],
@@ -820,6 +849,7 @@ social:[
 ],
 messaging:[
 ["Sender / Recipient","Client device","Hold a persistent connection; send and receive messages.","Reconnect storms after network blips.","Persistent connection = instant delivery but stateful server cost."],
+["GeoDNS","Geographic DNS","Steer clients to the nearest WebSocket gateway cluster.","DNS TTL; propagation lag on reconnect.","Low TTL = faster failover vs more DNS query volume."],
 ["L4 Load Balancer","Layer-4 (transport) Load Balancer","Balance long-lived TCP/WebSocket connections, not HTTP requests.","Connection count is the limit; rebalancing drops connections.","Keeps connections sticky vs no app-aware routing."],
 ["Conn Gateway","Connection Gateway","Terminate WebSockets and bridge clients to internal services.","Memory per open socket caps connections per node.","Stateful efficiency vs hard failover on node loss."],
 ["Session Registry","","Map user/device to the gateway node holding its connection.","Lookup is on the hot path of every routed message.","Central registry simplicity vs becoming a bottleneck."],
@@ -834,6 +864,8 @@ messaging:[
 ],
 marketplace:[
 ["Clients","Buyer / Supplier apps","Search supply and make bookings.","On-sale spikes overwhelm finite inventory.","Live availability vs server cost."],
+["GeoDNS","Geographic DNS","Steer clients to the nearest region.","DNS TTL; propagation lag.","Low TTL = faster failover vs more DNS query volume."],
+["CDN · edge shield","Content Delivery Network","Absorb traffic spikes and provide DDoS protection at the edge.","Limited cache hit-rate on dynamic booking traffic.","Edge protection vs minimal caching benefit for transactional flows."],
 ["Virtual Waiting Room","","Throttle a demand spike onto finite inventory.","Must itself absorb the full stampede.","Protects the core vs added user wait."],
 ["API Gateway","API Gateway","Entry for search and transactional booking traffic.","Booking writes demand strong downstream consistency.","Central control vs an extra hop."],
 ["Matching / Search","","Pair demand with the nearest available supply.","Real-time matching under churning supply.","Match quality vs computation cost."],
@@ -848,6 +880,7 @@ marketplace:[
 ],
 storage:[
 ["Uploader / Viewer","Client","Chunk-upload files and stream them back.","Dropped connections mid-upload; bandwidth asymmetry.","Chunking enables resume vs client complexity."],
+["GeoDNS","Geographic DNS","Steer uploaders and viewers to the nearest PoP.","DNS TTL caching slows region failover.","Low TTL = faster failover but more DNS query volume."],
 ["API Gateway","API Gateway","Route upload (write) and download (read) paths separately.","Mixed read/write traffic competes for resources.","Path separation vs more moving parts."],
 ["CDN / edge cache","Content Delivery Network","Serve hot objects and media segments from the edge.","Cold / long-tail content has low hit rate.","Offloads origin vs invalidation and cost."],
 ["Write Service","","Chunk, dedup and replicate incoming data.","Holds connections and hits disk; write-bound.","Scaled apart from reads vs duplicated logic."],
@@ -885,6 +918,7 @@ locks:[
 ],
 ratelimiter:[
 ["Clients","","Send requests subject to per-key limits.","Bursty traffic from a single key.",""],
+["GeoDNS","Geographic DNS","Steer clients to the nearest gateway cluster.","DNS TTL; no per-key affinity without sticky routing.","Low TTL = faster failover vs more DNS query volume."],
 ["Load Balancer","Load Balancer","Spread requests across gateway nodes.","Even spread splits one key's count across nodes.","Distribution vs harder per-key accounting."],
 ["API Gateway / Edge","API Gateway","Host the limiter at the network edge.","Becomes the central enforcement point.","Early rejection saves the backend vs edge complexity."],
 ["Rate Limiter","Token-bucket limiter","Decide allow / deny per key against a budget.","Per-request decision latency.","Token bucket allows bursts vs leaky bucket smooths."],
@@ -908,6 +942,8 @@ crawler:[
 ],
 search:[
 ["Clients","","Issue searches and browse recommendations.","Autocomplete fires a request per keystroke.","Responsiveness vs query volume."],
+["GeoDNS","Geographic DNS","Steer clients to the nearest query cluster.","DNS TTL; propagation lag.","Low TTL = faster failover vs more DNS query volume."],
+["CDN · edge cache","Content Delivery Network","Cache popular search results at the edge.","Low hit-rate on unique queries; only head of distribution benefits.","Huge latency win for head queries vs minimal help on the tail."],
 ["Global LB","Global Load Balancer","Spread high query QPS across index replicas.","Must distribute without creating shard hotspots.","Even spread vs loss of cache affinity."],
 ["Query Service","","Parse a query, scatter to shards, gather results.","Coordinates every request; fan-out overhead.","Central orchestration vs added latency."],
 ["Query Cache","","Serve repeated popular queries from memory.","Long tail of unique queries churns the cache.","Huge hit rate on head queries vs little help on the tail."],
@@ -920,6 +956,7 @@ search:[
 ],
 fintech:[
 ["Clients / Partners","","Submit payments or trading orders.","Retries on timeout risk duplicate submissions.","Reliability vs duplicate-handling complexity."],
+["GeoDNS","Geographic DNS","Route payment clients to the nearest gateway.","DNS TTL; critical payments must not be misdirected.","Low TTL = faster failover vs more DNS query volume."],
 ["Payment / Order Gateway","","Single entry for money and order flow.","Every transaction funnels through it.","Central control and validation vs a hop."],
 ["Idempotency Layer","Idempotency-key dedup","Collapse retried requests so money moves once.","Key-store lookup on every request.","Exactly-once safety vs key-storage overhead."],
 ["Risk / Fraud","","Run pre-trade / pre-charge checks.","Adds synchronous latency to the hot path.","Loss prevention vs added latency."],
@@ -933,6 +970,7 @@ fintech:[
 ],
 rideshare:[
 ["Rider / Driver apps","","Request rides, track trips, and emit GPS.","Driver GPS pings every few seconds = a write firehose.","Frequent pings = fresh location vs ingest load."],
+["GeoDNS","Geographic DNS","Route rider and driver requests to the nearest region.","DNS TTL; driver pings still traverse DNS on reconnect.","Low TTL = faster failover vs more DNS query volume."],
 ["API Gateway","API Gateway","Entry for ride requests and trip queries.","Demand spikes with weather and events.","Central control vs a hop."],
 ["Location Ingest","","Absorb millions of GPS pings per second.","Must update an index cell, not a DB row per ping.","Throughput vs per-ping durability."],
 ["Geospatial Index","S2 / geohash / quadtree (in-memory)","Find nearest drivers via kNN over live positions.","Cell hotspots downtown; constant churn.","Fast nearest-driver search vs index-update load."],
@@ -959,6 +997,7 @@ analytics:[
 ],
 collab:[
 ["Editors","Client","Make concurrent edits and see others live.","Many editors on one hot document.","Real-time collaboration vs sync complexity."],
+["GeoDNS","Geographic DNS","Steer editors to the nearest WebSocket gateway.","DNS TTL; reconnects after network blips must resolve quickly.","Low TTL = faster failover vs more DNS query volume."],
 ["WebSocket Gateway","","Stream ops bidirectionally per session.","Connection state per editor.","Instant sync vs stateful servers."],
 ["Session / Room","","Group editors collaborating on one doc.","Hot rooms concentrate load.","Per-doc isolation vs room hotspots."],
 ["OT / CRDT Engine","Operational Transformation / Conflict-free Replicated Data Type","Reconcile concurrent edits into one state.","Transform cost grows with concurrency.","Automatic convergence vs algorithmic complexity."],
@@ -969,6 +1008,8 @@ collab:[
 ],
 docedit:[
 ["Editor client","","Edit rich text and render the document live.","Large docs strain client rendering.","Rich editing vs client memory."],
+["GeoDNS","Geographic DNS","Steer editors to the nearest region.","DNS TTL; propagation lag.","Low TTL = faster failover vs more DNS query volume."],
+["CDN · edge","Content Delivery Network","Cache static assets and shield origin API.","Low cache hit-rate on dynamic document content.","Edge protection vs invalidation complexity."],
 ["API Gateway","API Gateway","Entry for document CRUD, comments and export.","Every action passes an access check.","Central control vs a hop."],
 ["Document Service","","Create, open and update documents.","Hot documents concentrate load.","Single source of truth vs per-doc hotspots."],
 ["Autosave / Draft","Debounced autosave","Persist edits incrementally without data loss.","Write amplification if not debounced.","Never lose work vs write volume."],
@@ -986,20 +1027,20 @@ docedit:[
 /* ---------- component ↔ diagram-node map (same order as COMP) ---------- */
 const NODEMAP = {
 master:[["CL"],["DNS"],["CDN"],["GLB"],["GW"],["RS"],["WS"],["CACHE"],["Q"],["WK"],["DB"],["IDX"],["OBJ"]],
-social:[["CL"],["GW"],["CDN"],["FEED"],["POST"],["RANK"],["FQ"],["FW"],["CACHE"],["GRAPH"],["TL"],["OBJ"]],
-messaging:[["CL","RC"],["LB"],["CG","CG2"],["SR"],["ROUTE"],["SEQ"],["PS"],["PC"],["PUB"],["DQ"],["PUSH"],["MS"]],
-marketplace:[["CL"],["WR"],["GW"],["SEARCH"],["GEO"],["BOOK"],["INV"],["PRICE"],["PAY"],["DB"],["LED"],["HOLD"]],
-storage:[["UP","VW"],["GW"],["CDN"],["WS"],["RS"],["META"],["HC"],["TQ"],["TW"],["MDB"],["CHUNK"],["OBJ"]],
-search:[["CL"],["LB"],["QS"],["QC"],["SCAT"],["S1","S2","S3"],["RANK"],["VEC"],["CRAWL"],["IDXER"]],
-fintech:[["CL"],["GW"],["IDEM"],["RISK"],["LEDGER"],["MATCH"],["ES"],["PROJ"],["RM"],["SETTLE"],["SS"]],
-rideshare:[["RIDER","DRIVER"],["GW"],["LOCING"],["GEO"],["MATCH"],["TRIP"],["ETA"],["SURGE"],["PAY"],["STREAM"],["TRIPDB"],["PAYLED"]],
+social:[["CL"],["DNS"],["GW"],["CDN"],["FEED"],["POST"],["RANK"],["FQ"],["FW"],["CACHE"],["GRAPH"],["TL"],["OBJ"]],
+messaging:[["CL","RC"],["DNS"],["LB"],["CG","CG2"],["SR"],["ROUTE"],["SEQ"],["PS"],["PC"],["PUB"],["DQ"],["PUSH"],["MS"]],
+marketplace:[["CL"],["DNS"],["CDN"],["WR"],["GW"],["SEARCH"],["GEO"],["BOOK"],["INV"],["PRICE"],["PAY"],["DB"],["LED"],["HOLD"]],
+storage:[["UP","VW"],["DNS"],["GW"],["CDN"],["WS"],["RS"],["META"],["HC"],["TQ"],["TW"],["MDB"],["CHUNK"],["OBJ"]],
+search:[["CL"],["DNS"],["CDN"],["LB"],["QS"],["QC"],["SCAT"],["S1","S2","S3"],["RANK"],["VEC"],["CRAWL"],["IDXER"]],
+fintech:[["CL"],["DNS"],["GW"],["IDEM"],["RISK"],["LEDGER"],["MATCH"],["ES"],["PROJ"],["RM"],["SETTLE"],["SS"]],
+rideshare:[["RIDER","DRIVER"],["DNS"],["GW"],["LOCING"],["GEO"],["MATCH"],["TRIP"],["ETA"],["SURGE"],["PAY"],["STREAM"],["TRIPDB"],["PAYLED"]],
 analytics:[["SRC"],["COLL"],["BUS"],["STREAMP"],["BATCH"],["DLAKE"],["WH"],["RT"],["QUERY"],["DASH"]],
-collab:[["CL1","CL2"],["WS"],["SESSION"],["OT"],["PRESENCE"],["LOG"],["SNAP"],["PERSIST"]],
-ratelimiter:[["CL"],["LB"],["GW"],["LIM"],["LOCAL"],["LUA"],["REDIS"],["SVC"],["REJECT"]],
+collab:[["CL1","CL2"],["DNS"],["WS"],["SESSION"],["OT"],["PRESENCE"],["LOG"],["SNAP"],["PERSIST"]],
+ratelimiter:[["CL"],["DNS"],["LB"],["GW"],["LIM"],["LOCAL"],["LUA"],["REDIS"],["SVC"],["REJECT"]],
 crawler:[["SEED"],["FRONT"],["FETCH"],["DNS"],["ROBOTS"],["PARSE"],["DEDUP"],["SEEN"],["RAW"],["IDXP"]],
 searchengine:[["CRAWL"],["DOCS"],["TOK"],["IDXER"],["DICT"],["POST"],["SHARDS"],["QP"],["COORD"],["RANK"],["RES"]],
 locks:[["C1","C2"],["LS"],["LEADER"],["F1","F2"],["LOG"],["LEASE"],["FENCE"],["RES"]],
-docedit:[["CL"],["GW"],["DOCSVC"],["AUTOSAVE"],["VERSION"],["COMMENT"],["ACL"],["SEARCH"],["RENDER"],["DOCDB"],["VERDB"],["BLOB"]]
+docedit:[["CL"],["DNS"],["CDN"],["GW"],["DOCSVC"],["AUTOSAVE"],["VERSION"],["COMMENT"],["ACL"],["SEARCH"],["RENDER"],["DOCDB"],["VERDB"],["BLOB"]]
 };
 
 /* ---------- CAP trade-off per design: [lean, rationale] ---------- */
