@@ -1,0 +1,1181 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Design · Master Framework</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e18; --bg-2:#0d1322; --panel:#121a2c; --panel-2:#172238;
+    --line:#283450; --line-soft:#1d2840;
+    --ink:#e9eefb; --ink-dim:#94a2c2; --ink-faint:#5d6a8a;
+    --rack:#9db4d4; --c:var(--rack);
+    --core-fill:#1d2a44; --core-text:#eef4ff;
+    --good:#4ade80; --warn:#fbbf3c; --bad:#ff5d73;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:10px;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7fb; --bg-2:#eef2f9; --panel:#ffffff; --panel-2:#f3f6fc;
+    --line:#d4dcec; --line-soft:#e4e9f4;
+    --ink:#16203a; --ink-dim:#54607c; --ink-faint:#8b97b3;
+    --rack:#3a5a86;
+    --core-fill:#eef4ff; --core-text:#10203a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 80% -10%, color-mix(in srgb,var(--c) 9%,transparent), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.5;
+    -webkit-font-smoothing:antialiased; padding:26px clamp(14px,4vw,48px) 60px;
+    transition:background .25s,color .25s;
+  }
+  .grid-overlay{position:fixed;inset:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:46px 46px;mask:radial-gradient(900px 600px at 70% 0,#000,transparent 75%)}
+
+  header{max-width:1280px;margin:0 auto 20px;position:relative}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.32em;color:var(--ink-faint);text-transform:uppercase}
+  h1{font-size:clamp(26px,4vw,40px);margin:.18em 0 .1em;letter-spacing:-.02em;font-weight:680}
+  h1 b{color:var(--c);font-weight:680}
+  .sub{color:var(--ink-dim);max-width:64ch;font-size:14.5px}
+  .toggle{position:absolute;top:2px;right:0;display:flex;gap:6px;align-items:center;
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-dim);
+    border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 12px;cursor:pointer;transition:.18s}
+  .toggle:hover{border-color:var(--ink-faint);color:var(--ink)}
+  .toggle svg{width:14px;height:14px;display:block}
+
+  .legend{max-width:1280px;margin:0 auto 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+  .prim{border:1px solid var(--line-soft);border-radius:8px;padding:9px 10px;background:var(--panel);transition:.2s}
+  .prim .n{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink);display:flex;gap:7px;align-items:center}
+  .prim .n i{width:7px;height:7px;border-radius:2px;background:var(--ink-faint);flex:none;transition:.2s}
+  .prim .d{font-size:11px;color:var(--ink-faint);margin-top:3px}
+  .prim.hot{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--panel))}
+  .prim.hot .n i{background:var(--c);box-shadow:0 0 9px var(--c)}
+  .prim.hot .d{color:var(--ink-dim)}
+
+  .tabs{max-width:1280px;margin:0 auto 16px}
+  .tabgroup{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .glabel{flex-basis:100%;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 1px}
+  .tab{font-family:var(--mono);font-size:12px;letter-spacing:.04em;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink-dim);
+    padding:9px 14px;border-radius:999px;transition:.18s;display:flex;align-items:center;gap:8px}
+  .tab i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.55}
+  .tab:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .tab[aria-selected="true"]{color:#fff;background:var(--tc,var(--c));border-color:var(--tc,var(--c));font-weight:600}
+  :root[data-theme="light"] .tab[aria-selected="true"]{color:#fff}
+  .tab[aria-selected="true"] i{background:#fff;opacity:.7}
+
+  .stage{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 358px;gap:18px;align-items:start}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}.panel{position:static;max-height:none;overflow:visible}}
+
+  .canvas{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .canvas-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line-soft)}
+  .canvas-head .t{font-weight:640;font-size:15px}
+  .canvas-head .t b{color:var(--c)}
+  .canvas-head .flow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--ink-faint)}
+  .diagram{padding:18px 14px;min-height:320px;display:flex;justify-content:center;align-items:center;overflow:auto}
+  .diagram svg{max-width:100%;height:auto;animation:fade .35s ease}
+  .diagram .lat{font-size:.8em;opacity:.6;font-weight:400}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .xcut{display:flex;flex-wrap:wrap;gap:7px;padding:11px 14px;border-top:1px solid var(--line);background:var(--bg-2)}
+  .xcut .k{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase;align-self:center;margin-right:4px}
+  .xtag{font-family:var(--mono);font-size:11px;color:var(--ink-dim);border:1px dashed var(--line);border-radius:6px;padding:4px 8px}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 18px;position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto}
+  .panel .ex{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--c);margin-bottom:2px}
+  .panel h2{font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  .panel .tag{color:var(--ink-dim);font-size:13px;margin-bottom:14px}
+  .sec{margin-bottom:14px}
+  .sec h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 7px;display:flex;align-items:center;gap:8px}
+  .sec h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .hp{border-left:2px solid var(--c);padding:2px 0 2px 10px;margin-bottom:9px}
+  .hp .t{font-size:13px;font-weight:600;color:var(--ink)}
+  .hp .d{font-size:12px;color:var(--ink-dim);margin-top:1px}
+  ul.lst{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  ul.lst li{font-family:var(--mono);font-size:11px;color:var(--ink-dim);background:var(--bg-2);border:1px solid var(--line-soft);border-radius:6px;padding:5px 9px}
+  .slo{display:block}
+  .slo li{display:flex;gap:8px;font-family:var(--sans);font-size:12.5px;color:var(--ink-dim);padding:4px 0;border:none;background:none}
+  .slo li b{color:var(--ink);font-weight:600}
+  .slo li::before{content:"◆";color:var(--c);font-size:9px;margin-top:4px}
+  .cbox{border:1px solid var(--line-soft);border-radius:8px;margin-bottom:7px;background:var(--bg-2);overflow:hidden}
+  .cbox[open]{border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+  .cbox summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px;font-family:var(--mono);font-size:12px;color:var(--ink);user-select:none}
+  .cbox summary::-webkit-details-marker{display:none}
+  .cbox summary::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--c);flex:none;transition:.18s}
+  .cbox[open] summary::before{transform:rotate(45deg)}
+  .cn{font-weight:600}
+  .cf{font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.02em;color:var(--ink-faint);border:1px solid var(--line);border-radius:5px;padding:2px 6px;margin-left:auto;white-space:nowrap}
+  .cbody{padding:0 11px 11px 25px}
+  .cp{font-size:12.5px;color:var(--ink-dim);margin-bottom:7px}
+  .cmeta{font-size:12px;color:var(--ink-dim);display:flex;gap:7px;margin-top:5px;line-height:1.42}
+  .ck{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex:none;height:fit-content;margin-top:1px}
+  .ck.bn{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+  .ck.tr{color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+  .cbox.hl{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+  .cbox.hl>summary{background:color-mix(in srgb,var(--c) 16%,transparent)}
+  .cap{display:flex;align-items:center;gap:11px;margin-bottom:14px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:8px;background:var(--bg-2)}
+  .captri{display:flex;gap:5px;flex:none}
+  .capL{width:25px;height:25px;border-radius:6px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid var(--line);color:var(--ink-dim)}
+  .capL.on{background:var(--c);color:#0a0e18;border-color:var(--c)}
+  :root[data-theme="light"] .capL.on{color:#fff}
+  .capL.off{opacity:.4;text-decoration:line-through}
+  .capL.mid{border-style:dashed;border-color:var(--c);color:var(--c)}
+  .capmeta{font-size:12px;color:var(--ink-dim);line-height:1.42}
+  .capmeta b{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
+  .diagram g.node{transition:filter .15s}
+  .diagram g.node.hl rect,.diagram g.node.hl path,.diagram g.node.hl polygon,.diagram g.node.hl circle,.diagram g.node.hl ellipse{stroke:var(--c)!important;stroke-width:3px!important;filter:drop-shadow(0 0 5px var(--c))}
+  .footer{max-width:1280px;margin:22px auto 0;color:var(--ink-faint);font-size:12px;text-align:center;font-family:var(--mono);letter-spacing:.04em}
+  @media (prefers-reduced-motion:reduce){.diagram svg{animation:none}}
+</style>
+</head>
+<body>
+<div class="grid-overlay"></div>
+
+<header>
+  <button class="toggle" id="themeBtn" aria-label="Toggle theme"></button>
+  <div class="eyebrow">System Design · Reference Architecture</div>
+  <h1>The <b>Master Framework</b></h1>
+  <p class="sub">One universal request flow that every large system reshapes for its own constraints. Switch families to redraw the architecture, see which of the eight primitives dominate, and where the SRE risk lives.</p>
+</header>
+
+<div class="legend" id="legend"></div>
+<div class="tabs" id="tabs" role="tablist"></div>
+
+<div class="stage">
+  <div class="canvas">
+    <div class="canvas-head">
+      <div class="t" id="title"></div>
+      <div class="flow">EDGE = ACTION · BOX = LATENCY</div>
+    </div>
+    <div class="diagram" id="diagram"></div>
+    <div class="xcut" id="xcut"></div>
+  </div>
+  <aside class="panel" id="panel"></aside>
+</div>
+
+<div class="footer">After Matsudaira · Scalable Web Architecture &amp; Distributed Systems — extended into six system families.</div>
+
+<script>
+/* ---------- chapter primitives ---------- */
+const PRIMS = [
+  ["Services","Read/write split · SOA"],
+  ["Redundancy","Shared-nothing · failover"],
+  ["Partitions","Sharding · horizontal scale"],
+  ["Caches","Local · global · distributed"],
+  ["Proxies","Reverse proxy · collapse"],
+  ["Indexes","Inverted index · fast lookup"],
+  ["Load Balancers","Distribute · health-check"],
+  ["Queues","Async writes · decoupling"],
+];
+
+/* ---------- diagrams (mermaid) + data ---------- */
+const MASTER = {
+  key:"master", name:"Universal Stack", color:"#9db4d4", colorLight:"#3a5a86",
+  ex:"BASELINE", tag:"The shared spine. Every family below is a re-weighting of these same components.",
+  mer:`flowchart TB
+  CL["Clients<br/><span class='lat'>20–80 ms RTT</span>"]
+  subgraph EDGE["L1 · Edge"]
+    direction LR
+    DNS["GeoDNS / Anycast<br/><span class='lat'>~1 ms cached</span>"]
+    CDN["CDN<br/><span class='lat'>~10–30 ms</span>"]
+    GLB["Global LB<br/><span class='lat'>~1 ms</span>"]
+    DNS -->|resolve| CDN -->|route| GLB
+  end
+  GW["L2 · API Gateway<br/>auth · routing · quotas<br/><span class='lat'>~2–5 ms</span>"]
+  RS["L3 · Read Service<br/>cacheable · scales high<br/><span class='lat'>~2 ms</span>"]
+  WS["L3 · Write Service<br/>holds conns · scales lower<br/><span class='lat'>~10 ms</span>"]
+  CACHE["L4 · Distributed Cache<br/><span class='lat'>~0.5 ms</span>"]
+  Q["L5 · Queue<br/><span class='lat'>~3 ms enqueue</span>"]
+  WK["Workers<br/><span class='lat'>async</span>"]
+  DB[("RDBMS<br/>sharded + replicated<br/><span class='lat'>5 ms r · 15 ms w</span>")]
+  IDX[("Search Index<br/><span class='lat'>~10 ms</span>")]
+  OBJ[("Object Store<br/><span class='lat'>20–50 ms</span>")]
+  CL -->|HTTPS| DNS
+  GLB -->|TLS + route| GW
+  GW -->|GET| RS
+  GW -->|POST| WS
+  RS -->|lookup| CACHE
+  CACHE -. miss .-> DB
+  RS -->|query| DB
+  RS -->|search| IDX
+  WS -->|enqueue| Q
+  Q -->|consume| WK
+  WK -->|persist| DB
+  WS -->|store blob| OBJ`,
+  core:["CDN","GLB","GW","RS","WS","CACHE","Q","DB","IDX"],
+  xcut:["Observability","Redundancy / Failover","Partitioning","Consistency model","Capacity & SLOs"],
+  prims:[0,1,2,3,4,5,6,7],
+  hard:[
+    ["Principles in tension","Availability, performance, scalability, manageability and cost trade off — design is choosing what to sacrifice."],
+    ["Reads ≫ Writes","Split them: reads cache & scale; writes hold connections and hit disk."],
+  ],
+  stores:["RDBMS","Distributed cache","Object store","Search index","Event log"],
+  scaling:["Horizontal, shared-nothing","Cache hot reads","Shard by key","Queue slow writes"],
+  slos:[["Availability","redundancy + graceful degradation"],["Latency p99","cache + CDN + LB health checks"],["Durability","replication across AZ/region"]],
+};
+
+const SYSTEMS = [
+  {
+    key:"social", name:"Social & Content", color:"#ff5d73", colorLight:"#e11d48",
+    ex:"TWITTER · INSTAGRAM · REDDIT", tag:"Feeds built from a social graph — the fan-out problem, ranked timelines, and the celebrity edge case.",
+    mer:`flowchart TB
+  CL["Clients<br/><span class='lat'>scroll · post</span>"]
+  GW["Feed API Gateway<br/><span class='lat'>~3 ms</span>"]
+  CDN["CDN · media<br/><span class='lat'>~15 ms</span>"]
+  FEED["Feed Service<br/><span class='lat'>~20 ms</span>"]
+  POST["Post / Write Service<br/><span class='lat'>~15 ms</span>"]
+  RANK["Ranking Service<br/><span class='lat'>~30 ms ML</span>"]
+  FQ["Fan-out Queue<br/><span class='lat'>~5 ms</span>"]
+  FW["Fan-out Workers<br/><span class='lat'>async · sec</span>"]
+  CACHE["Hot Timeline Cache<br/><span class='lat'>~1 ms</span>"]
+  GRAPH[("Social Graph DB<br/><span class='lat'>~5 ms</span>")]
+  TL[("Timeline Store<br/>wide-column<br/><span class='lat'>~8 ms</span>")]
+  OBJ[("Object Store<br/><span class='lat'>20–50 ms</span>")]
+  CL -->|GET feed| GW
+  CL -->|load media| CDN
+  GW -->|read timeline| FEED
+  GW -->|publish| POST
+  POST -->|edge lookup| GRAPH
+  POST -->|upload| OBJ
+  OBJ -->|cache fill| CDN
+  POST -->|enqueue| FQ
+  FQ -->|consume| FW
+  FW -->|insert post id| TL
+  FEED -->|read| CACHE
+  CACHE -. miss .-> TL
+  FEED -->|who to merge| GRAPH
+  FEED -->|score| RANK
+  RANK -->|ranked ids| FEED`,
+    core:["CDN","FEED","FQ","FW","TL","GRAPH","CACHE","RANK"],
+    xcut:["Eventual consistency OK","Hot-key mitigation","Fan-out strategy","Read path > write path"],
+    prims:[2,3,5,7],
+    hard:[
+      ["Fan-out: write vs read","Push posts into follower inboxes on write (fast reads) — but a celebrity with 50M followers makes write amplification explode."],
+      ["Hybrid for celebrities","Fan-out-on-write for normal users; fan-out-on-read (pull + merge) for celebrities; cache their posts hard."],
+      ["Feed ranking","Move from reverse-chron to ML ranking without blowing p99 on feed load."],
+      ["Hot keys","A viral post / huge account concentrates traffic on single partitions."],
+    ],
+    stores:["Graph DB (edges)","Wide-column timelines","Object store + CDN","Redis hot feeds"],
+    scaling:["Precompute timelines (fan-out-on-write)","Pull-merge for celebrities","Shard by user_id","Cache hottest feeds"],
+    slos:[["Feed load p99","< ~300 ms via precompute + cache"],["Post-to-visible","seconds — eventual is fine"],["Read availability","prioritised over write availability"]],
+  },
+  {
+    key:"messaging", name:"Messaging & Real-time", color:"#22d3ee", colorLight:"#0e7490",
+    ex:"WHATSAPP · SLACK · DISCORD", tag:"Millions of persistent connections, presence, and ordered, at-least-once delivery.",
+    mer:`flowchart TB
+  CL["Sender client<br/><span class='lat'>persistent WS</span>"]
+  LB["L4 Load Balancer<br/>WebSocket<br/><span class='lat'>~1 ms</span>"]
+  CG["Conn Gateway<br/>WS termination<br/><span class='lat'>~1 ms</span>"]
+  SR["Session Registry<br/><span class='lat'>~1 ms</span>"]
+  ROUTE["Message Router<br/><span class='lat'>~2 ms</span>"]
+  SEQ["Sequencer<br/><span class='lat'>~2 ms</span>"]
+  PS["Presence Service<br/><span class='lat'>~1 ms</span>"]
+  PC[("Presence Cache<br/><span class='lat'>~0.5 ms</span>")]
+  PUB["Pub/Sub Fan-out<br/><span class='lat'>~3 ms</span>"]
+  DQ["Delivery Queue<br/><span class='lat'>~3 ms</span>"]
+  PUSH["Push Gateway<br/>APNs / FCM<br/><span class='lat'>100–500 ms</span>"]
+  MS[("Message Store<br/>by conversation<br/><span class='lat'>~8 ms</span>")]
+  CG2["Recipient Conn Gateway<br/><span class='lat'>~1 ms</span>"]
+  RC["Recipient<br/><span class='lat'>~30 ms e2e</span>"]
+  CL -->|send| LB
+  LB -->|sticky conn| CG
+  CG -->|register| SR
+  CG -->|route msg| ROUTE
+  ROUTE -->|order| SEQ
+  SEQ -->|persist| MS
+  ROUTE -->|update| PS
+  PS -->|cache| PC
+  ROUTE -->|online?| PUB
+  PUB -->|deliver| CG2
+  CG2 -->|push frame| RC
+  ROUTE -->|offline?| DQ
+  DQ -->|wake| PUSH
+  PUSH -->|notify| RC`,
+    core:["LB","CG","SR","ROUTE","SEQ","PS","PUB","DQ","PUSH","MS"],
+    xcut:["Sticky connections","Ordering guarantees","At-least-once + dedup","Offline sync"],
+    prims:[1,2,6,7],
+    hard:[
+      ["Connection state at scale","Millions of stateful WebSockets — route by consistent hashing, survive node loss, reconnect cleanly."],
+      ["Ordering + delivery","Per-conversation ordering with at-least-once delivery; client-side dedup by message ID."],
+      ["Presence fan-out","Online/typing changes for large groups create a broadcast storm — debounce + cache aggressively."],
+      ["Offline sync","Recipient offline for days → durable per-device cursor and replay on reconnect."],
+    ],
+    stores:["Wide-column message store","KV presence/session","Per-device inbox cursor","Object store (media)"],
+    scaling:["Shard connections by consistent hash","Pub/sub for group fan-out","Partition by conversation","Push gateway for offline"],
+    slos:[["Delivery latency p99","sub-second within region"],["Delivery success","at-least-once, dedup at client"],["Connection availability","seamless failover + reconnect"]],
+  },
+  {
+    key:"marketplace", name:"Marketplaces & Booking", color:"#fbbf3c", colorLight:"#b45309",
+    ex:"UBER · AIRBNB · TICKETMASTER", tag:"Geospatial matching + transactional inventory — where double-booking is the cardinal sin.",
+    mer:`flowchart TB
+  CL["Clients<br/><span class='lat'>search · book</span>"]
+  WR["Virtual Waiting Room<br/><span class='lat'>wait: s–min</span>"]
+  GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
+  SEARCH["Matching / Search<br/><span class='lat'>~20 ms</span>"]
+  GEO[("Geospatial Index<br/>geohash / S2<br/><span class='lat'>~5 ms</span>")]
+  BOOK["Booking Orchestrator<br/>Saga<br/><span class='lat'>~50 ms</span>"]
+  INV["Inventory Service<br/><span class='lat'>~10 ms lock</span>"]
+  PRICE["Pricing Engine<br/><span class='lat'>~10 ms</span>"]
+  PAY["Payment Service<br/><span class='lat'>200–800 ms</span>"]
+  DB[("Transactional DB<br/>strong consistency<br/><span class='lat'>~10 ms</span>")]
+  LED[("Payments Ledger<br/><span class='lat'>~8 ms</span>")]
+  HOLD["Reservation TTL Queue<br/><span class='lat'>TTL 2–10 min</span>"]
+  CL -->|enter| WR
+  WR -->|admit| GW
+  GW -->|nearby?| SEARCH
+  SEARCH -->|geo query| GEO
+  GW -->|reserve| BOOK
+  BOOK -->|quote| PRICE
+  BOOK -->|hold unit| INV
+  INV -->|conditional write| DB
+  BOOK -->|charge| PAY
+  PAY -->|record| LED
+  INV -->|set hold| HOLD
+  HOLD -. expire .-> INV`,
+    core:["WR","SEARCH","GEO","BOOK","INV","DB","PRICE","HOLD"],
+    xcut:["Strong consistency (inventory)","Optimistic / pessimistic locks","Saga vs 2PC","Shard by geography"],
+    prims:[0,2,5,1],
+    hard:[
+      ["No double-booking","Concurrent buyers on the same seat/room — pessimistic locks, conditional updates, or reservation holds with TTL."],
+      ["Hot inventory stampede","Concert on-sale: virtual waiting room + queue to flatten the spike onto a finite inventory."],
+      ["Geospatial matching","Index drivers/listings by geohash/S2 for fast 'nearby' queries; rebalance as supply moves."],
+      ["Distributed transaction","Reserve → pay → confirm spans services; Saga with compensations vs 2PC's blocking — pick per consistency need."],
+    ],
+    stores:["RDBMS (strong, transactional)","Geospatial index","Payments ledger","Availability cache"],
+    scaling:["Shard by city/region","In-memory geo index","TTL holds on reservations","Waiting room to shed load"],
+    slos:[["Booking correctness","zero double-books (consistency > availability)"],["Availability accuracy","near real-time inventory truth"],["Payment consistency","exactly-once charge"]],
+  },
+  {
+    key:"rideshare", name:"Ride-sharing & Dispatch", color:"#84cc16", colorLight:"#4d7c0f",
+    ex:"UBER · LYFT · DIDI", tag:"Real-time supply tracking meets geospatial matching — ingest driver GPS at firehose scale, dispatch the nearest car, then stream the trip.",
+    mer:`flowchart TB
+  RIDER["Rider app<br/><span class='lat'>request · track</span>"]
+  DRIVER["Driver app<br/><span class='lat'>GPS ping ~4 s</span>"]
+  GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
+  LOCING["Location Ingest<br/>GPS firehose<br/><span class='lat'>~2 ms · M/s</span>"]
+  GEO[("Geospatial Index<br/>S2 / QuadTree<br/><span class='lat'>~5 ms kNN</span>")]
+  MATCH["Dispatch / Matching<br/><span class='lat'>~30 ms</span>"]
+  TRIP["Trip Service<br/>state machine<br/><span class='lat'>~10 ms</span>"]
+  ETA["ETA / Routing<br/><span class='lat'>~40 ms</span>"]
+  SURGE["Surge Pricing<br/><span class='lat'>~10 ms</span>"]
+  PAY["Payment Service<br/><span class='lat'>200–800 ms</span>"]
+  STREAM["Location Stream<br/>pub/sub<br/><span class='lat'>~50 ms push</span>"]
+  TRIPDB[("Trip Store<br/><span class='lat'>~8 ms</span>")]
+  PAYLED[("Payments Ledger<br/><span class='lat'>~8 ms</span>")]
+  DRIVER -->|GPS ping| LOCING
+  LOCING -->|update cell| GEO
+  RIDER -->|request ride| GW
+  GW -->|find nearby| MATCH
+  MATCH -->|kNN query| GEO
+  MATCH -->|quote| SURGE
+  MATCH -->|create trip| TRIP
+  TRIP -->|persist| TRIPDB
+  TRIP -->|compute| ETA
+  TRIP -->|live location| STREAM
+  STREAM -->|push| RIDER
+  TRIP -->|charge| PAY
+  PAY -->|record| PAYLED`,
+    core:["LOCING","GEO","MATCH","TRIP","ETA","SURGE","STREAM"],
+    xcut:["Shard by city / geohash","kNN matching","Real-time location stream","Write-heavy GPS ingest"],
+    prims:[2,5,7,3],
+    hard:[
+      ["GPS write firehose","Millions of driver pings per second — high-write ingest, not request/response. Update the geo-index cell, not a row per ping."],
+      ["Nearest-driver matching","kNN over a moving supply set: index by S2/geohash and search expanding rings; dispatch must never double-assign a driver."],
+      ["Trip state machine","requested → matched → enroute → ongoing → completed; every transition durable and idempotent under retries and reconnects."],
+      ["Real-time tracking","Stream the driver's live location to the rider at low latency via pub/sub, without persisting every hop."],
+    ],
+    stores:["In-memory geospatial index","Trip store (state machine)","Payments ledger","Location stream / log"],
+    scaling:["Shard by city / geo cell","In-memory geo index","Pub/sub location fan-out","Separate write-heavy ingest path"],
+    slos:[["Match latency","seconds to assign a driver"],["Location freshness","few-second ping-to-rider"],["Trip correctness","exactly-once charge + state"]],
+  },
+  {
+    key:"storage", name:"Storage & Media", color:"#a78bfa", colorLight:"#6d28d9",
+    ex:"DROPBOX · YOUTUBE · S3", tag:"The chapter's own example, scaled up — split reads from writes, chunk, replicate, transcode, serve from the edge.",
+    mer:`flowchart TB
+  UP["Uploader · chunked<br/><span class='lat'>resumable</span>"]
+  VW["Viewer / Player<br/><span class='lat'>HLS / DASH</span>"]
+  GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
+  CDN["CDN / edge cache<br/><span class='lat'>~15 ms TTFB</span>"]
+  WS["Write Service<br/><span class='lat'>~30 ms / chunk</span>"]
+  RS["Read Service<br/><span class='lat'>~5 ms</span>"]
+  META["Metadata Service<br/><span class='lat'>~5 ms</span>"]
+  HC["Hot Object Cache<br/><span class='lat'>~1 ms</span>"]
+  TQ["Transcode Queue<br/><span class='lat'>~3 ms</span>"]
+  TW["Transcode Workers<br/><span class='lat'>async · min</span>"]
+  MDB[("Metadata DB<br/>sharded<br/><span class='lat'>~6 ms</span>")]
+  CHUNK[("Chunk Index<br/>content-addressed<br/><span class='lat'>~3 ms</span>")]
+  OBJ[("Object Store<br/>EC / replicated<br/><span class='lat'>20–60 ms</span>")]
+  UP -->|PUT chunks| GW
+  GW -->|write| WS
+  VW -->|GET segment| CDN
+  GW -->|read| RS
+  WS -->|map chunks| META
+  META -->|persist| MDB
+  WS -->|dedup hash| CHUNK
+  WS -->|store| OBJ
+  WS -->|enqueue| TQ
+  TQ -->|consume| TW
+  TW -->|write renditions| OBJ
+  RS -->|resolve| META
+  RS -->|hot?| HC
+  RS -->|fetch| OBJ
+  OBJ -->|origin pull| CDN`,
+    core:["CDN","WS","RS","META","MDB","CHUNK","OBJ","TQ"],
+    xcut:["Split read/write services","Erasure coding / replication","Content-addressed dedup","CDN offload"],
+    prims:[0,2,4,7],
+    hard:[
+      ["Durability (11 nines)","Replicate across AZ/region or erasure-code; the chapter's redundancy principle taken to the extreme."],
+      ["Read/write split","Exactly the chapter's lesson: writes hold connections + hit disk; reads cache and stream — scale them apart."],
+      ["Large resumable uploads","Chunk files so a dropped connection resumes mid-upload instead of restarting."],
+      ["Transcoding throughput","Async fan-out into a rendition ladder via queue + worker pool; never block the upload."],
+    ],
+    stores:["Object/blob store (EC/replicated)","Content-addressed chunk index","Sharded metadata DB","CDN edge"],
+    scaling:["Separate read & write services","Partition by file/user","Dedup via content hash","CDN for hot content"],
+    slos:[["Durability","11×9 via replication / erasure coding"],["Time-to-first-byte","CDN + edge segment cache"],["Upload success","resumable chunked uploads"]],
+  },
+  {
+    key:"search", name:"Search & Discovery", color:"#4ade80", colorLight:"#15803d",
+    ex:"GOOGLE · ELASTICSEARCH · RECS", tag:"Inverted indexes at TB scale — scatter-gather query serving, multi-tier ranking, and freshness.",
+    mer:`flowchart TB
+  CL["Clients<br/><span class='lat'>query</span>"]
+  LB["Global LB<br/><span class='lat'>~1 ms</span>"]
+  QS["Query Service<br/><span class='lat'>~5 ms</span>"]
+  QC["Query Cache<br/><span class='lat'>~1 ms</span>"]
+  SCAT{{"Scatter / Gather<br/><span class='lat'>p99 ~80 ms</span>"}}
+  S1[("Index Shard 1<br/><span class='lat'>~10 ms</span>")]
+  S2[("Index Shard 2<br/><span class='lat'>~10 ms</span>")]
+  S3[("Index Shard N<br/><span class='lat'>~10 ms</span>")]
+  RANK["Ranking Service<br/><span class='lat'>~25 ms ML</span>"]
+  VEC[("Vector DB<br/><span class='lat'>~15 ms ANN</span>")]
+  CRAWL["Crawler / Ingestion<br/><span class='lat'>async</span>"]
+  IDXER["Indexer<br/><span class='lat'>build</span>"]
+  CL -->|search| LB
+  LB -->|route| QS
+  QS -->|lookup| QC
+  QC -. miss .-> SCAT
+  SCAT -->|sub-query| S1
+  SCAT -->|sub-query| S2
+  SCAT -->|sub-query| S3
+  QS -->|rerank top-k| RANK
+  RANK -->|embeddings| VEC
+  CRAWL -->|docs| IDXER
+  IDXER -->|write| S1
+  IDXER -->|write| S2
+  IDXER -->|write| S3`,
+    core:["QS","QC","SCAT","S1","S2","S3","RANK","VEC","IDXER"],
+    xcut:["Index sharding + replication","Scatter-gather tail latency","Freshness vs size","Cache popular queries"],
+    prims:[5,2,3,6],
+    hard:[
+      ["Inverted index at scale","The chapter's index lesson — term→doc postings, nested/layered indexes; even compressed, TB-scale."],
+      ["Scatter-gather tail latency","Query fans to all shards; p99 is the slowest shard — replicate + hedge requests."],
+      ["Multi-tier ranking","Cheap recall over millions → expensive ML precision over the top-k, within latency budget."],
+      ["Freshness vs cost","Near-real-time index updates without rebuilding the whole corpus."],
+    ],
+    stores:["Sharded inverted index","Vector DB (embeddings)","Document store","Query cache"],
+    scaling:["Document-partition + scatter-gather","Replicate shards for QPS","Cache hot queries","Two-stage ranking"],
+    slos:[["Query latency p99","tens of ms via cache + replicas"],["Index freshness","minutes of ingestion lag"],["Relevance","ranking quality metrics (NDCG)"]],
+  },
+  {
+    key:"fintech", name:"Fintech & Trading", color:"#60a5fa", colorLight:"#1d4ed8",
+    ex:"STRIPE · LEDGERS · EXCHANGES", tag:"Correctness over availability — idempotent money movement, double-entry ledgers, deterministic low-latency matching.",
+    mer:`flowchart TB
+  CL["Clients / Partners<br/><span class='lat'>pay · order</span>"]
+  GW["Payment / Order Gateway<br/><span class='lat'>~3 ms</span>"]
+  IDEM["Idempotency Layer<br/><span class='lat'>~2 ms</span>"]
+  RISK["Risk / Fraud<br/><span class='lat'>~10 ms</span>"]
+  LEDGER["Ledger Service<br/>double-entry<br/><span class='lat'>~8 ms</span>"]
+  MATCH["Matching Engine<br/>in-memory book<br/><span class='lat'>&lt;100 µs</span>"]
+  ES[("Event Store<br/>append-only<br/><span class='lat'>~5 ms</span>")]
+  PROJ["CQRS Projector<br/><span class='lat'>async</span>"]
+  RM[("Read Models<br/><span class='lat'>~2 ms</span>")]
+  SETTLE["Settlement Queue<br/><span class='lat'>~3 ms</span>"]
+  SS["Settlement<br/><span class='lat'>batch · hrs</span>"]
+  CL -->|request| GW
+  GW -->|dedupe key| IDEM
+  IDEM -->|check| RISK
+  RISK -->|post entries| LEDGER
+  LEDGER -->|append| ES
+  RISK -->|place order| MATCH
+  MATCH -->|trade event| ES
+  ES -->|project| PROJ
+  PROJ -->|update| RM
+  ES -->|enqueue| SETTLE
+  SETTLE -->|clear| SS
+  GW -->|read balance| RM`,
+    core:["GW","IDEM","RISK","LEDGER","MATCH","ES","PROJ","SETTLE"],
+    xcut:["Consistency > availability (CP)","Idempotency keys","Event sourcing + CQRS","Single-writer per account"],
+    prims:[1,2,7,5],
+    hard:[
+      ["Exactly-once money movement","Retries must not double-charge — idempotency keys + dedup at the gateway; ledger writes are atomic."],
+      ["CP, not AP","Money systems choose consistency over availability; partition tolerance means refusing service before risking inconsistency."],
+      ["Auditability","Event-sourced, append-only log gives a replayable, immutable trail for compliance + reconciliation."],
+      ["Low-latency matching (trading)","In-memory order book with a deterministic sequencer for fair, microsecond matching."],
+    ],
+    stores:["Strongly-consistent ledger DB","Append-only event store","CQRS read models","In-memory order book"],
+    scaling:["Shard by account","Single-writer per partition (ordering)","Event sourcing + CQRS","In-memory matching + sequencer"],
+    slos:[["Correctness","zero money lost — consistency first"],["Durability","every committed event survives"],["Latency","deterministic; trading → microseconds"]],
+  },
+  {
+    key:"analytics", name:"Analytics & Streaming", color:"#facc15", colorLight:"#a16207",
+    ex:"KAFKA · FLINK · WAREHOUSE", tag:"Turn an event firehose into insight — a fast streaming path for recency and a batch path for accuracy.",
+    mer:`flowchart TB
+  SRC["Event Sources<br/><span class='lat'>firehose</span>"]
+  COLL["Collector / SDK<br/><span class='lat'>~2 ms</span>"]
+  BUS["Event Bus · Kafka<br/><span class='lat'>~5 ms</span>"]
+  STREAMP["Stream Processor · Flink<br/><span class='lat'>~50 ms</span>"]
+  BATCH["Batch / ETL · Spark<br/><span class='lat'>async · hrs</span>"]
+  DLAKE[("Data Lake · S3<br/><span class='lat'>land raw</span>")]
+  WH[("Warehouse / OLAP<br/>columnar<br/><span class='lat'>~1 s scan</span>")]
+  RT[("Realtime Store · Druid<br/><span class='lat'>~20 ms</span>")]
+  QUERY["Query / API<br/><span class='lat'>~10 ms</span>"]
+  DASH["Dashboards / BI<br/><span class='lat'>serve</span>"]
+  SRC -->|emit| COLL
+  COLL -->|publish| BUS
+  BUS -->|stream| STREAMP
+  BUS -->|land raw| DLAKE
+  STREAMP -->|aggregates| RT
+  DLAKE -->|transform| BATCH
+  BATCH -->|load| WH
+  RT -->|recent| QUERY
+  WH -->|historical| QUERY
+  QUERY -->|serve| DASH`,
+    core:["BUS","STREAMP","BATCH","DLAKE","WH","RT"],
+    xcut:["Lambda / Kappa","Stream vs batch","Exactly-once","Schema registry"],
+    prims:[7,2,5,3],
+    hard:[
+      ["Lambda vs Kappa","Run a fast streaming path for recency and a batch path for accuracy and reprocessing (Lambda), or unify on one replayable log (Kappa)."],
+      ["Exactly-once processing","Stream operators must survive retries and restarts without double-counting — checkpointing plus idempotent sinks."],
+      ["Late / out-of-order events","Watermarks and windowing bound how long to wait for stragglers before emitting an aggregate."],
+      ["Schema evolution","Events change shape over time; a schema registry keeps producers and consumers compatible."],
+    ],
+    stores:["Event log (Kafka)","Data lake (object store)","Columnar warehouse / OLAP","Realtime store (Druid)"],
+    scaling:["Partition the event log","Parallel stream operators","Partitioned columnar warehouse","Pre-aggregate for serving"],
+    slos:[["Freshness","seconds streaming, hours batch"],["Completeness","exactly-once, no double counts"],["Query latency","sub-second on pre-aggregates"]],
+  },
+  {
+    key:"collab", name:"Collaborative Editing", color:"#c084fc", colorLight:"#7e22ce",
+    ex:"GOOGLE DOCS · FIGMA · NOTION", tag:"Many editors, one converging document — concurrent ops reconciled by OT or CRDTs over an ordered log.",
+    mer:`flowchart TB
+  CL1["Editor A<br/><span class='lat'>edits</span>"]
+  CL2["Editor B<br/><span class='lat'>edits</span>"]
+  WS["WebSocket Gateway<br/><span class='lat'>~1 ms</span>"]
+  SESSION["Session / Room<br/><span class='lat'>~2 ms</span>"]
+  OT["OT / CRDT Engine<br/><span class='lat'>~5 ms</span>"]
+  PRESENCE["Cursor / Presence<br/><span class='lat'>~1 ms</span>"]
+  LOG[("Op Log · append-only<br/><span class='lat'>~5 ms</span>")]
+  SNAP[("Snapshot Store<br/><span class='lat'>~10 ms</span>")]
+  PERSIST["Persistence / Save<br/><span class='lat'>async</span>"]
+  CL1 -->|edit op| WS
+  CL2 -->|edit op| WS
+  WS -->|join| SESSION
+  WS -->|apply| OT
+  OT -->|order op| LOG
+  OT -->|broadcast| WS
+  WS -->|cursor| PRESENCE
+  LOG -->|compact| SNAP
+  SNAP -->|persist| PERSIST`,
+    core:["WS","SESSION","OT","LOG","SNAP"],
+    xcut:["OT vs CRDT","Total op ordering","Presence + cursors","Snapshot + replay"],
+    prims:[0,2,7,3],
+    hard:[
+      ["Concurrent-edit convergence","Two users edit the same span at once; Operational Transformation or CRDTs reconcile so every client converges to one state."],
+      ["Operation ordering","A per-document op log assigns a total order; clients apply ops in that order to stay consistent."],
+      ["Presence and cursors","Broadcast cursors and selections with low latency without flooding the channel."],
+      ["Snapshots vs replay","Periodically snapshot the doc so a new joiner loads snapshot + recent ops instead of replaying full history."],
+    ],
+    stores:["Append-only op log","Document snapshot store","Session / presence cache"],
+    scaling:["Partition by document / room","One ordering authority per doc","Snapshot to bound replay","Pub/sub broadcast within a room"],
+    slos:[["Edit latency","sub-100 ms to see others' edits"],["Convergence","all clients reach identical state"],["Durability","no acknowledged edit lost"]],
+  },
+  {
+    key:"docedit", name:"Document Editing", color:"#d4a373", colorLight:"#92400e",
+    ex:"GOOGLE DOCS · WORD · NOTION", tag:"The document platform behind the editor — autosave, version history, comments, permissions, search and export.",
+    mer:`flowchart TB
+  CL["Editor client<br/><span class='lat'>type · render</span>"]
+  GW["API Gateway<br/><span class='lat'>~3 ms</span>"]
+  ACL["Permissions / Sharing<br/>ACL<br/><span class='lat'>~4 ms</span>"]
+  DOCSVC["Document Service<br/><span class='lat'>~8 ms</span>"]
+  AUTOSAVE["Autosave / Draft<br/>debounced<br/><span class='lat'>~5 ms</span>"]
+  VERSION["Version History<br/><span class='lat'>~10 ms</span>"]
+  COMMENT["Comments / Suggestions<br/><span class='lat'>~6 ms</span>"]
+  SEARCH["Search Index<br/><span class='lat'>~15 ms</span>"]
+  RENDER["Render / Export<br/><span class='lat'>async</span>"]
+  DOCDB[("Document Store<br/>block / op model<br/><span class='lat'>~6 ms</span>")]
+  VERDB[("Version Store<br/>append-only<br/><span class='lat'>~8 ms</span>")]
+  BLOB[("Object Store<br/>attachments<br/><span class='lat'>~30 ms</span>")]
+  CL -->|open / edit| GW
+  GW -->|check access| ACL
+  GW -->|CRUD| DOCSVC
+  DOCSVC -->|read / write| DOCDB
+  CL -. debounced .-> AUTOSAVE
+  AUTOSAVE -->|persist draft| DOCDB
+  DOCSVC -->|snapshot| VERSION
+  VERSION -->|store| VERDB
+  DOCSVC -->|attach| BLOB
+  DOCSVC -->|index| SEARCH
+  GW -->|comment| COMMENT
+  COMMENT -->|store| DOCDB
+  GW -->|export| RENDER
+  RENDER -->|fetch| DOCDB`,
+    core:["DOCSVC","DOCDB","VERSION","VERDB","ACL","SEARCH"],
+    xcut:["Block / operational doc model","Autosave + debounce","Snapshots + diffs","ACL on every access"],
+    prims:[0,2,5,3],
+    hard:[
+      ["Document model","Represent rich text as a structured block/operational model, not a blob, so edits, comments and concurrent ops anchor to stable positions."],
+      ["Autosave without thrash","Debounce client edits and persist drafts incrementally — never lose work, but don't write on every keystroke."],
+      ["Version history at scale","Keep periodic snapshots plus diffs so any past version is reconstructable without storing every keystroke forever."],
+      ["Permissions on every path","Sharing/ACL checks gate read, write, comment and export — enforced server-side and cached for hot docs."],
+    ],
+    stores:["Structured document store","Append-only version store","Object store (attachments)","Full-text search index"],
+    scaling:["Partition by document / user","Snapshot + diff for history","Cache ACL for hot docs","Async render / export"],
+    slos:[["Save reliability","no acknowledged edit lost"],["Open latency","fast doc load via cache"],["History","any version reconstructable"]],
+  },
+];
+const BLOCKS = [
+  {
+    key:"ratelimiter", name:"Rate Limiter", color:"#fb923c", colorLight:"#c2410c",
+    ex:"DISTRIBUTED · TOKEN BUCKET", tag:"Throttle requests per key without adding latency — a local-first counter backed by an atomic central store.",
+    mer:`flowchart TB
+  CL["Clients<br/><span class='lat'>requests</span>"]
+  LB["Load Balancer<br/><span class='lat'>~1 ms</span>"]
+  GW["API Gateway / Edge<br/><span class='lat'>~2 ms</span>"]
+  LIM["Rate Limiter<br/>token bucket<br/><span class='lat'>~0.1 ms</span>"]
+  LOCAL["Local Counter<br/>in-process<br/><span class='lat'>~0.05 ms</span>"]
+  LUA["Atomic Lua / INCR<br/><span class='lat'>~1 ms</span>"]
+  REDIS[("Central Store<br/>Redis counters<br/><span class='lat'>~0.5 ms</span>")]
+  SVC["Backend Service<br/><span class='lat'>protected</span>"]
+  REJECT["429 Too Many Requests<br/><span class='lat'>reject</span>"]
+  CL -->|HTTP| LB
+  LB -->|route| GW
+  GW -->|check| LIM
+  LIM -->|fast path| LOCAL
+  LOCAL -. async sync .-> REDIS
+  LIM -->|atomic decr| LUA
+  LUA -->|INCR| REDIS
+  LIM -->|allow| SVC
+  LIM -->|deny| REJECT`,
+    core:["LIM","LOCAL","LUA","REDIS"],
+    xcut:["Token / leaky / sliding window","Atomic counter ops","Local-first two-tier","Fail-open vs fail-closed"],
+    prims:[3,2,4,6],
+    hard:[
+      ["Algorithm choice","Token bucket (allows bursts) vs leaky bucket (smooths) vs fixed/sliding window — each trades burst tolerance for accuracy at window edges."],
+      ["Distributed counter races","Many nodes incrementing one key → lost updates. Use atomic Redis INCR / Lua scripts so check-and-decrement is a single op."],
+      ["Local-first to cut latency","Keep an in-process bucket to avoid a Redis round-trip per request; reconcile asynchronously and tolerate slight over-limit."],
+      ["Fail-open vs fail-closed","If the central store is unavailable, do you allow traffic (protect UX) or block it (protect the backend)? An explicit, deliberate choice."],
+    ],
+    stores:["Redis counters (sharded by key)","In-memory local bucket"],
+    scaling:["Shard counters by limit key","Local-first to cut round-trips","Sliding-window log vs counter"],
+    slos:[["Added latency","sub-ms on local path"],["Limit accuracy","atomic ops bound the error"],["Availability","graceful degradation when store is down"]],
+  },
+  {
+    key:"crawler", name:"Web Crawler", color:"#2dd4bf", colorLight:"#0f766e",
+    ex:"POLITE · DISTRIBUTED FRONTIER", tag:"Fetch the web at scale without duplicating work or hammering any host — a priority frontier feeding a worker pool.",
+    mer:`flowchart TB
+  SEED["Seed URLs<br/><span class='lat'>seeds</span>"]
+  FRONT["URL Frontier<br/>priority + politeness<br/><span class='lat'>dequeue</span>"]
+  FETCH["Fetcher Workers<br/><span class='lat'>~200 ms fetch</span>"]
+  DNS[("DNS Cache<br/><span class='lat'>~1 ms</span>")]
+  ROBOTS["robots.txt Check<br/><span class='lat'>~1 ms cached</span>"]
+  PARSE["Parser / Extractor<br/><span class='lat'>~5 ms</span>"]
+  DEDUP["Content Dedup<br/>Bloom + hash<br/><span class='lat'>~0.1 ms</span>"]
+  SEEN[("Seen-URL Set<br/><span class='lat'>~3 ms</span>")]
+  RAW[("Page / Blob Store<br/><span class='lat'>~20 ms</span>")]
+  IDXP["Index Pipeline<br/><span class='lat'>async</span>"]
+  SEED -->|seed| FRONT
+  FRONT -->|next URL| FETCH
+  FETCH -->|resolve| DNS
+  FETCH -->|allowed?| ROBOTS
+  FETCH -->|store page| RAW
+  RAW -->|hand off| IDXP
+  FETCH -->|extract| PARSE
+  PARSE -->|seen?| DEDUP
+  DEDUP -->|record| SEEN
+  PARSE -->|new links| FRONT`,
+    core:["FRONT","FETCH","DNS","DEDUP","SEEN"],
+    xcut:["Politeness + robots.txt","Bloom-filter dedup","Priority re-crawl","Shard frontier by host"],
+    prims:[7,2,3,5],
+    hard:[
+      ["Politeness","Per-host rate limits + robots.txt. Partition the frontier by host so one domain is never hammered, even with thousands of workers."],
+      ["URL dedup at scale","Billions of URLs — a Bloom filter cheaply answers 'seen before?' before paying for the authoritative seen-URL store."],
+      ["Traps & loops","Calendars and infinite parameter spaces. Canonicalize URLs, cap depth, detect cycles."],
+      ["Freshness / re-crawl","The frontier is a priority queue: schedule re-fetches by how often a page actually changes."],
+    ],
+    stores:["URL frontier (queue)","Seen-URL set (Bloom + DB)","Blob store (raw pages)"],
+    scaling:["Shard frontier by host","Stateless fetcher pool","Distributed Bloom filter"],
+    slos:[["Throughput","pages/sec across the pool"],["Freshness","re-crawl lag for changed pages"],["Politeness","zero robots.txt violations"]],
+  },
+  {
+    key:"searchengine", name:"Search Engine", color:"#818cf8", colorLight:"#4338ca",
+    ex:"INVERTED INDEX · BM25", tag:"Turn a document corpus into ranked results — build posting lists, shard them, then scatter-gather at query time.",
+    mer:`flowchart TB
+  CRAWL["Crawler / Ingest<br/><span class='lat'>async</span>"]
+  DOCS[("Document Store<br/><span class='lat'>~10 ms</span>")]
+  TOK["Tokenize / Normalize<br/><span class='lat'>~2 ms</span>"]
+  IDXER["Indexer<br/><span class='lat'>batch</span>"]
+  DICT[("Term Dictionary<br/><span class='lat'>~1 ms</span>")]
+  POST[("Posting Lists<br/>inverted index<br/><span class='lat'>~5 ms</span>")]
+  SHARDS["Index Shards<br/><span class='lat'>~10 ms</span>"]
+  QP["Query Parser<br/><span class='lat'>~1 ms</span>"]
+  COORD{{"Coordinator<br/>scatter / gather<br/><span class='lat'>p99 ~60 ms</span>"}}
+  RANK["Ranker<br/>BM25 → ML<br/><span class='lat'>~20 ms</span>"]
+  RES["Ranked Results<br/><span class='lat'>top-k</span>"]
+  CRAWL -->|ingest| DOCS
+  DOCS -->|analyze| TOK
+  TOK -->|terms| IDXER
+  IDXER -->|terms| DICT
+  IDXER -->|postings| POST
+  POST -->|load| SHARDS
+  QP -->|parse| COORD
+  COORD -->|sub-query| SHARDS
+  COORD -->|rerank| RANK
+  RANK -->|return| RES`,
+    core:["IDXER","DICT","POST","COORD","RANK"],
+    xcut:["Inverted index + compression","Term vs doc partitioning","BM25 → ML rerank","Segment-merge updates"],
+    prims:[5,2,3,6],
+    hard:[
+      ["Building the inverted index","Tokenize, normalize, stem → map each term to a posting list of doc IDs. Compress postings (delta + varint) — even compressed it runs to TBs."],
+      ["Term vs document partitioning","Doc-partition = balanced load but every query scatters to all shards; term-partition = fewer shards hit but hot terms create skew."],
+      ["Two-stage ranking","Cheap lexical recall (TF-IDF / BM25) over millions, then expensive ML re-rank over the top-k within the latency budget."],
+      ["Incremental updates","Immutable segments + background merge (Lucene-style) so new docs are searchable without rebuilding the corpus."],
+    ],
+    stores:["Inverted index (posting lists)","Term dictionary / FST","Document store"],
+    scaling:["Shard the index","Replicate shards for QPS","Cache hot queries","Hedge slow shards"],
+    slos:[["Query latency p99","tens of ms via cache + replicas"],["Index freshness","minutes of merge lag"],["Relevance","NDCG / click metrics"]],
+  },
+  {
+    key:"locks", name:"Distributed Lock Service", color:"#f472b6", colorLight:"#be185d",
+    ex:"CHUBBY · ZOOKEEPER · ETCD", tag:"Mutual exclusion across a cluster — consensus for agreement, leases for crash safety, fencing tokens against split-brain.",
+    mer:`flowchart TB
+  C1["Client A<br/><span class='lat'>acquire</span>"]
+  C2["Client B<br/><span class='lat'>waits</span>"]
+  LS["Lock Service API<br/><span class='lat'>~1 ms</span>"]
+  LEADER["Leader<br/>Raft / Paxos<br/><span class='lat'>~3 ms</span>"]
+  F1["Follower<br/><span class='lat'>replicate</span>"]
+  F2["Follower<br/><span class='lat'>replicate</span>"]
+  LOG[("Replicated Log<br/>state machine<br/><span class='lat'>quorum ~5 ms</span>")]
+  LEASE["Lease / TTL<br/>+ heartbeat<br/><span class='lat'>TTL 10–30 s</span>"]
+  FENCE["Fencing Token<br/><span class='lat'>monotonic</span>"]
+  RES["Protected Resource<br/><span class='lat'>validate</span>"]
+  C1 -->|acquire| LS
+  C2 -->|acquire| LS
+  LS -->|propose| LEADER
+  LEADER -->|append| F1
+  LEADER -->|append| F2
+  LEADER -->|commit| LOG
+  LEADER -->|grant lease| LEASE
+  LEADER -->|issue token| FENCE
+  C1 -->|write · token N| RES
+  FENCE -. reject stale .-> RES`,
+    core:["LEADER","F1","F2","LOG","LEASE","FENCE"],
+    xcut:["Raft / Paxos consensus","Lease + heartbeat","Fencing tokens","Split-brain safety"],
+    prims:[1,7,2],
+    hard:[
+      ["Consensus for agreement","A replicated log (Raft/Paxos) ensures every node agrees who holds the lock and survives leader failure — no single point of truth."],
+      ["Leases stop dead holders","Locks carry a TTL the client must renew via heartbeat; a crashed client's lock auto-expires instead of blocking forever."],
+      ["Fencing tokens","Each grant returns a monotonic token. A paused-then-resumed client writes with a stale token, and the resource rejects it — defeating split-brain writes."],
+      ["The Redlock debate","Clock-based multi-Redis locking is contested; consensus-backed services (etcd/ZK) give stronger safety guarantees."],
+    ],
+    stores:["Replicated state-machine log","In-memory lock table"],
+    scaling:["Shard the lock namespace","Consensus group of 3 / 5","Bounded reads from followers"],
+    slos:[["Safety","mutual exclusion always holds"],["Acquisition latency","one consensus round-trip"],["Liveness","available through leader election"]],
+  },
+];
+const ALL = [MASTER, ...SYSTEMS, ...BLOCKS];
+
+/* ---------- per-component breakdown: [name, full-form, purpose, bottleneck, tradeoff] ---------- */
+const COMP = {
+master:[
+["Clients","Web / Mobile / API","Originate requests across the public internet.","Heterogeneous network speeds; mobile latency and loss.","Rich clients cut server load but fragment logic per platform."],
+["GeoDNS / Anycast","Geographic DNS + Anycast routing","Steer each user to the nearest healthy region or PoP.","DNS TTL caching slows failover; propagation lag.","Low TTL = faster failover but more DNS query volume."],
+["CDN","Content Delivery Network","Cache and serve static/media bytes from edge PoPs near users.","Cache invalidation; low hit-rate on dynamic content.","Big latency and origin-load win vs invalidation complexity and cost."],
+["Global LB","Global Load Balancer","Spread connections across regions and instances, health-checking each.","The balancer can saturate; skewed hashing makes hotspots.","Sticky sessions keep state local but block clean failover."],
+["API Gateway","Application Programming Interface Gateway","Single entry for auth, routing, quotas and request shaping.","Central choke point and SPOF unless replicated.","Centralizes cross-cutting concerns at the cost of an extra hop."],
+["Read Service","","Serve cacheable reads; shared-nothing, scales out wide.","Cache-miss stampedes and hot keys.","Read replicas add throughput but serve stale data."],
+["Write Service","","Accept and durably persist writes.","Holds connections, hits disk; throughput caps below reads.","Synchronous replication = durability at the cost of write latency."],
+["Distributed Cache","Redis / Memcached","Sub-millisecond shared lookups via consistent hashing.","Hot keys, memory pressure, invalidation correctness.","Speed vs extra memory cost and coherence complexity."],
+["Queue","Message Queue","Decouple slow/async work; absorb spikes; retry failures.","Backlog growth and consumer lag under sustained overload.","Resilience and smoothing vs added latency and eventual consistency."],
+["Workers","","Pull tasks from the queue and process at their own rate.","Pool size caps drain rate; poison messages stall progress.","Horizontal scale vs at-least-once duplicate handling."],
+["RDBMS","Relational Database Management System","Strongly-consistent transactional system of record.","Single-primary write ceiling; costly cross-shard joins.","ACID guarantees vs harder horizontal scaling."],
+["Search Index","Inverted Index","Fast text/attribute lookups the DB cannot serve cheaply.","Index size and freshness lag; rebuild cost.","Faster reads vs slower writes and extra storage."],
+["Object Store","Blob / Object Storage","Durable, cheap storage for large unstructured blobs.","Per-object latency; metadata/listing at scale.","Cheap and durable vs higher latency than block storage."]
+],
+social:[
+["Clients","","Post, scroll and refresh feeds.","Refresh storms create read amplification.","Aggressive client caching vs feed staleness."],
+["Feed API Gateway","API Gateway","Entry for read-heavy feed and write traffic.","Spiky read amplification on refresh.","Central control vs an extra hop."],
+["CDN · media","Content Delivery Network","Serve photos and video from the edge.","Long-tail / cold media has low hit rate.","Latency win vs invalidation and cost."],
+["Feed Service","","Assemble and order a user's timeline.","On-read merge cost for users following many accounts.","Precompute (write cost) vs on-read merge (read cost)."],
+["Post / Write Service","","Persist a post and trigger fan-out.","Write amplification scales with follower count.","Sync fan-out (consistent) vs async (eventual, scalable)."],
+["Ranking Service","","Score posts by recency, affinity and ML signals.","Scoring latency added to feed-load p99.","Higher engagement vs added latency and infra cost."],
+["Fan-out Queue","Message Queue","Buffer write-amplification work asynchronously.","Backlog explodes for celebrity posts.","Decoupling vs post-to-visible lag."],
+["Fan-out Workers","","Insert the post ID into each follower's timeline.","Throughput caps on huge follower sets.","Push model = fast reads but expensive writes."],
+["Hot Timeline Cache","Redis","Hold precomputed timelines for active users.","Memory limits force eviction of less-active users.","Fast feeds vs cache cost and invalidation."],
+["Social Graph DB","","Store follower/following edges for traversal.","Super-node (celebrity) edges skew fan-out.","Graph query power vs operational complexity."],
+["Timeline Store","Wide-column store (Cassandra)","Per-user inbox of post IDs, partitioned by user.","Hot partitions on viral content.","Write-optimized scale vs limited ad-hoc queries."],
+["Object Store","Blob storage","Durable media bytes behind the CDN.","Per-object fetch latency.","Cheap and durable vs slower than block storage."]
+],
+messaging:[
+["Sender / Recipient","Client device","Hold a persistent connection; send and receive messages.","Reconnect storms after network blips.","Persistent connection = instant delivery but stateful server cost."],
+["L4 Load Balancer","Layer-4 (transport) Load Balancer","Balance long-lived TCP/WebSocket connections, not HTTP requests.","Connection count is the limit; rebalancing drops connections.","Keeps connections sticky vs no app-aware routing."],
+["Conn Gateway","Connection Gateway","Terminate WebSockets and bridge clients to internal services.","Memory per open socket caps connections per node.","Stateful efficiency vs hard failover on node loss."],
+["Session Registry","","Map user/device to the gateway node holding its connection.","Lookup is on the hot path of every routed message.","Central registry simplicity vs becoming a bottleneck."],
+["Message Router","","Route a message to the recipient's gateway or store.","Fan-out to large groups multiplies routing work.","Routing flexibility vs added latency."],
+["Sequencer","","Assign per-conversation ordering to messages.","Single-writer per conversation limits throughput.","Strict ordering vs per-partition write ceiling."],
+["Presence Service","","Track online / typing / last-seen state.","High-churn updates; broadcast storms in large groups.","Real-time presence vs heavy update fan-out."],
+["Presence Cache","Key-Value store","Hold ephemeral, fast-changing presence state.","Write-heavy churn pressures the cache.","Speed vs accuracy of a constantly-stale signal."],
+["Pub/Sub Fan-out","Publish / Subscribe","Broadcast a message to all subscribers of a channel.","Large channels amplify a single publish massively.","Decoupled fan-out vs delivery-guarantee complexity."],
+["Delivery Queue","Message Queue","Buffer messages for offline or slow recipients.","Backlog for long-offline users.","Reliable delivery vs storage and replay cost."],
+["Push Gateway","APNs / FCM (Apple / Firebase push) bridge","Deliver to offline devices via Apple or Google push.","Third-party rate limits and latency.","Reaches offline users vs dependence on external services."],
+["Message Store","Wide-column store","Durably persist messages, partitioned by conversation.","Hot conversations create hot partitions.","Write-optimized durability vs limited query flexibility."]
+],
+marketplace:[
+["Clients","Buyer / Supplier apps","Search supply and make bookings.","On-sale spikes overwhelm finite inventory.","Live availability vs server cost."],
+["Virtual Waiting Room","","Throttle a demand spike onto finite inventory.","Must itself absorb the full stampede.","Protects the core vs added user wait."],
+["API Gateway","API Gateway","Entry for search and transactional booking traffic.","Booking writes demand strong downstream consistency.","Central control vs an extra hop."],
+["Matching / Search","","Pair demand with the nearest available supply.","Real-time matching under churning supply.","Match quality vs computation cost."],
+["Geospatial Index","Geohash / S2 / quadtree index","Answer 'what is nearby?' fast over moving entities.","Rebalancing cells as supply moves; cell hotspots.","Fast geo queries vs index-maintenance overhead."],
+["Booking Orchestrator","Saga (compensating-transaction pattern)","Coordinate reserve → pay → confirm across services.","Long-running flow holds inventory; failure handling is complex.","Saga (available, eventual) vs 2PC (consistent, blocking)."],
+["Inventory Service","","Hold or lock units to prevent double-booking.","Lock contention on hot inventory.","Pessimistic locks (safe, slow) vs optimistic (fast, retry)."],
+["Pricing Engine","","Compute dynamic / surge pricing.","Recompute cost under rapid demand shifts.","Revenue optimization vs price stability and user trust."],
+["Payment Service","","Authorize and capture funds.","External processor latency and failures.","Reliability vs dependence on third parties."],
+["Transactional DB","RDBMS — Relational Database","Strongly-consistent store for inventory and bookings.","Single-primary write ceiling on hot rows.","ACID correctness vs horizontal-scale difficulty."],
+["Payments Ledger","","Immutable record of money movement.","Append throughput; reconciliation load.","Auditability vs write amplification."],
+["Reservation TTL Queue","Time-To-Live queue","Auto-expire holds that are not paid in time.","Clock accuracy; thundering release of expired holds.","Frees stuck inventory vs risk of releasing a closing sale."]
+],
+storage:[
+["Uploader / Viewer","Client","Chunk-upload files and stream them back.","Dropped connections mid-upload; bandwidth asymmetry.","Chunking enables resume vs client complexity."],
+["API Gateway","API Gateway","Route upload (write) and download (read) paths separately.","Mixed read/write traffic competes for resources.","Path separation vs more moving parts."],
+["CDN / edge cache","Content Delivery Network","Serve hot objects and media segments from the edge.","Cold / long-tail content has low hit rate.","Offloads origin vs invalidation and cost."],
+["Write Service","","Chunk, dedup and replicate incoming data.","Holds connections and hits disk; write-bound.","Scaled apart from reads vs duplicated logic."],
+["Read Service","","Serve and stream objects; scales independently.","Hot-object concentration.","Independent read scaling vs two services to operate."],
+["Metadata Service","","Map filename → chunks → physical locations.","Metadata lookups gate every read and write.","Indirection enables scale vs an extra lookup."],
+["Hot Object Cache","","Cache popular objects and media segments.","Memory limits against very large objects.","Speed vs cost for large blobs."],
+["Transcode Queue","Message Queue","Queue async transcoding into a rendition ladder.","Backlog during upload surges.","Non-blocking uploads vs processing lag."],
+["Transcode Workers","","Produce the 240p…4K rendition ladder.","CPU/GPU-bound; throughput caps.","Quality ladder vs compute cost."],
+["Metadata DB","Sharded relational / NoSQL store","Persist file metadata, partitioned by file or user.","Cross-shard listing queries.","Scale via sharding vs join limits."],
+["Chunk Index","Content-addressed index","Map content hashes to chunks; enables dedup.","Hash computation and lookups on every write.","Storage savings vs write-time overhead."],
+["Object Store","EC (erasure-coded) / replicated blob store","Durably store chunks at eleven-nines durability.","Per-object latency; rebuild cost on failure.","Erasure coding = cheap durability vs slower recovery."]
+],
+searchengine:[
+["Crawler / Ingest","","Feed documents into the indexing pipeline.","Source throughput; freshness of ingested data.","Coverage breadth vs ingestion cost."],
+["Document Store","","Hold source docs for snippets and re-indexing.","Storage volume; retrieval for snippet generation.","Re-index flexibility vs storage cost."],
+["Tokenize / Normalize","","Split text into terms; lowercase, stem, dedupe.","Language-specific rules; analyzer cost at scale.","Loose analysis (recall) vs strict (precision)."],
+["Indexer","","Build term → posting-list mappings.","Index build is CPU/IO heavy; merge overhead.","Build cost vs query-time speed."],
+["Term Dictionary","FST — Finite State Transducer","Map each term to its posting-list location.","Dictionary size for huge vocabularies.","Fast term lookup vs memory footprint."],
+["Posting Lists","Inverted-index postings","List doc IDs (and positions) per term, compressed.","Long lists for common terms; decompression cost.","Compression saves space vs CPU to decode."],
+["Index Shards","","Partition the index for parallel serving.","Scatter-gather waits on the slowest shard.","Doc-partition (balanced) vs term-partition (fewer shards, skew)."],
+["Query Parser","","Parse the query into terms and operators.","Complex queries expand to many term lookups.","Expressive queries vs evaluation cost."],
+["Coordinator","Scatter / Gather coordinator","Fan a query out to shards and merge results.","Tail latency = the slowest shard.","Parallelism vs straggler sensitivity (mitigate by hedging)."],
+["Ranker","BM25 (Best Match 25) → ML re-rank","Score and order candidates by relevance.","ML scoring latency over the candidate set.","Relevance quality vs latency budget."],
+["Ranked Results","","Return the final ordered list.","","Fewer results = faster vs less recall."]
+],
+locks:[
+["Clients","","Acquire and hold a lock before touching the resource.","A paused or GC'd client can hold a lock it should not.","Locking gives safety vs reduced concurrency."],
+["Lock Service API","","Entry point for acquire / release / renew.","Routes everything through the consensus group.","Simple interface vs a coordination dependency."],
+["Leader","Raft / Paxos consensus leader","Serialize lock operations and replicate them.","All writes funnel through one leader.","Single-writer ordering vs leader-throughput ceiling."],
+["Followers","","Replicate the log; elect a new leader on failure.","Election windows briefly pause writes.","Redundancy / HA vs replication latency per op."],
+["Replicated Log","Replicated state-machine log","Durable, agreed-upon history of lock state.","A quorum write per operation adds latency.","Strong agreement vs round-trip cost."],
+["Lease / TTL","Lease + Time-To-Live with heartbeat","Auto-release a lock if the holder stops renewing.","Clock skew; choosing the TTL / heartbeat interval.","Short TTL = fast recovery, more renewals; long = safer, slow recovery."],
+["Fencing Token","Monotonically increasing token","Let the resource reject writes from a stale holder.","Resource must check the token on every write.","Defeats split-brain writes vs resource-side enforcement cost."],
+["Protected Resource","","The shared resource the lock guards.","Becomes the real arbiter via token checks.","Correctness vs added write-path validation."]
+],
+ratelimiter:[
+["Clients","","Send requests subject to per-key limits.","Bursty traffic from a single key.",""],
+["Load Balancer","Load Balancer","Spread requests across gateway nodes.","Even spread splits one key's count across nodes.","Distribution vs harder per-key accounting."],
+["API Gateway / Edge","API Gateway","Host the limiter at the network edge.","Becomes the central enforcement point.","Early rejection saves the backend vs edge complexity."],
+["Rate Limiter","Token-bucket limiter","Decide allow / deny per key against a budget.","Per-request decision latency.","Token bucket allows bursts vs leaky bucket smooths."],
+["Local Counter","In-process counter","Decide locally with no network hop.","Drift between node-local views.","Low latency vs slight over-limit (approximate)."],
+["Atomic Lua / INCR","Redis Lua script / atomic INCR","Make check-and-decrement a single atomic op.","A round-trip to the central store per decision.","Accuracy vs latency of the central call."],
+["Central Store","Redis — in-memory key-value store","Hold authoritative counters shared across nodes.","Hot keys; a shared dependency to keep up.","Global accuracy vs single dependency."],
+["Backend Service","","Receives only the allowed traffic.","","Protected throughput vs rejected legitimate bursts."],
+["429 Response","HTTP 429 Too Many Requests","Tell the client it exceeded its limit.","","Clear signal vs thundering client retries."]
+],
+crawler:[
+["Seed URLs","","Starting points for the crawl.","Coverage depends on seed quality.",""],
+["URL Frontier","Priority + politeness queue","Decide what to fetch next and when.","Per-host politeness limits the drain rate.","Freshness/priority ordering vs frontier complexity."],
+["Fetcher Workers","","Download pages in parallel.","Network-IO bound; per-host rate caps.","Parallelism vs politeness constraints."],
+["DNS Cache","Domain Name System cache","Avoid resolving the same host repeatedly.","DNS latency on a cache miss.","Speed vs stale DNS entries."],
+["robots.txt Check","Robots Exclusion Protocol","Respect crawl permissions per host.","Fetch and parse policy before crawling.","Compliance vs reduced coverage."],
+["Parser / Extractor","","Extract content and outbound links.","Malformed pages; parse cost.","Link discovery vs parsing overhead."],
+["Content Dedup","Bloom filter + content hash","Cheaply skip already-seen URLs and content.","Bloom false positives skip genuinely-new content.","Cheap membership test vs a small false-positive rate."],
+["Seen-URL Set","","Authoritative record of crawled URLs.","Grows to billions; lookup cost.","Exactness vs storage size."],
+["Page / Blob Store","Blob storage","Persist raw fetched pages.","Storage volume.","Re-process flexibility vs cost."],
+["Index Pipeline","","Hand pages off to indexing.","Downstream throughput.","Decoupled stages vs end-to-end lag."]
+],
+search:[
+["Clients","","Issue searches and browse recommendations.","Autocomplete fires a request per keystroke.","Responsiveness vs query volume."],
+["Global LB","Global Load Balancer","Spread high query QPS across index replicas.","Must distribute without creating shard hotspots.","Even spread vs loss of cache affinity."],
+["Query Service","","Parse a query, scatter to shards, gather results.","Coordinates every request; fan-out overhead.","Central orchestration vs added latency."],
+["Query Cache","","Serve repeated popular queries from memory.","Long tail of unique queries churns the cache.","Huge hit rate on head queries vs little help on the tail."],
+["Scatter / Gather","Scatter-gather coordinator","Fan a query to all shards and merge results.","Tail latency = the slowest shard.","Parallel recall vs straggler sensitivity (hedge requests)."],
+["Index Shards","","Each holds a partition of the inverted index.","A hot shard or skewed term slows the whole query.","More shards = more parallelism but more fan-out."],
+["Ranking Service","","Score candidates: cheap recall, then ML precision.","ML scoring latency over the candidate set.","Relevance quality vs latency budget."],
+["Vector DB","Vector / embedding database","Power semantic search and recs via embeddings.","ANN (approximate-nearest-neighbor) build + memory.","Semantic matching vs index cost and approximate recall."],
+["Crawler / Ingestion","","Feed new documents into the index.","Source throughput; freshness lag.","Coverage breadth vs ingestion cost."],
+["Indexer","","Build and update index segments.","Index build is CPU/IO heavy.","Freshness vs rebuild cost."]
+],
+fintech:[
+["Clients / Partners","","Submit payments or trading orders.","Retries on timeout risk duplicate submissions.","Reliability vs duplicate-handling complexity."],
+["Payment / Order Gateway","","Single entry for money and order flow.","Every transaction funnels through it.","Central control and validation vs a hop."],
+["Idempotency Layer","Idempotency-key dedup","Collapse retried requests so money moves once.","Key-store lookup on every request.","Exactly-once safety vs key-storage overhead."],
+["Risk / Fraud","","Run pre-trade / pre-charge checks.","Adds synchronous latency to the hot path.","Loss prevention vs added latency."],
+["Ledger Service","Double-entry ledger","Record every movement as balanced debits and credits.","Append throughput; single-writer per account.","Auditable correctness vs write-throughput ceiling."],
+["Matching Engine","In-memory order book (trading)","Match buy/sell orders deterministically and fairly.","Single-threaded sequencer caps throughput.","Microsecond fair matching vs vertical-scale limits."],
+["Event Store","Append-only event log","Immutable, replayable source of truth.","Append-only growth; replay cost to rebuild state.","Full auditability vs storage and rebuild time."],
+["CQRS Projector","Command Query Responsibility Segregation projector","Derive fast read models from the event log.","Projection lag behind the write log.","Fast reads vs eventual consistency of views."],
+["Read Models","","Pre-computed views for fast queries.","Staleness window relative to the ledger.","Read performance vs consistency lag."],
+["Settlement Queue","Message Queue","Drive asynchronous settlement and clearing.","Backlog during settlement windows.","Decoupling vs settlement latency."],
+["Settlement","","Finalize money movement with counterparties.","External clearing / network dependencies.","Finality vs third-party latency."]
+],
+rideshare:[
+["Rider / Driver apps","","Request rides, track trips, and emit GPS.","Driver GPS pings every few seconds = a write firehose.","Frequent pings = fresh location vs ingest load."],
+["API Gateway","API Gateway","Entry for ride requests and trip queries.","Demand spikes with weather and events.","Central control vs a hop."],
+["Location Ingest","","Absorb millions of GPS pings per second.","Must update an index cell, not a DB row per ping.","Throughput vs per-ping durability."],
+["Geospatial Index","S2 / geohash / quadtree (in-memory)","Find nearest drivers via kNN over live positions.","Cell hotspots downtown; constant churn.","Fast nearest-driver search vs index-update load."],
+["Dispatch / Matching","","Assign the best nearby driver to a rider.","Contention when supply is scarce — no double-assign.","Match quality vs dispatch speed."],
+["Trip Service","Trip state machine","Drive requested → matched → ongoing → completed.","Every transition is a durable, idempotent write.","Durable lifecycle vs write load."],
+["ETA / Routing","","Estimate arrival and route the trip.","Routing compute under live traffic.","Accuracy vs compute cost."],
+["Surge Pricing","","Price by real-time supply and demand.","Recompute under rapid demand shifts.","Balancing supply vs rider trust."],
+["Payment Service","","Authorize and capture the fare.","External processor latency.","Reliability vs third-party dependency."],
+["Location Stream","Pub/sub","Stream the driver's live position to the rider.","Per-trip fan-out at low latency.","Live tracking vs not persisting every hop."],
+["Trip Store","","Persist trip state durably.","Hot during peak demand.","Durable record vs write throughput."],
+["Payments Ledger","","Immutable record of fares charged.","Append throughput; reconciliation.","Auditability vs write amplification."]
+],
+analytics:[
+["Event Sources","","Apps and services emit raw events.","A bursty, high-volume firehose.","Rich telemetry vs ingestion cost."],
+["Collector / SDK","","Buffer and ship events reliably.","Client buffering and back-pressure.","Reliability vs client overhead."],
+["Event Bus","Kafka / event log","Durable, replayable transport for events.","Partition hotspots; consumer lag.","Replayability vs ordering only within a partition."],
+["Stream Processor","Flink / Kafka Streams","Compute real-time aggregates with windows.","State size; exactly-once checkpoint cost.","Low latency vs late/approximate handling."],
+["Batch / ETL","Spark / batch jobs","Reprocess for accuracy and backfills.","Long runtimes; cluster cost.","Accuracy + reprocessing vs hours of latency."],
+["Data Lake","Object store (S3)","Land immutable raw events cheaply.","Small-file and metadata sprawl.","Cheap, flexible storage vs slower queries."],
+["Warehouse / OLAP","Columnar warehouse (BigQuery / Snowflake)","Serve historical analytical queries.","Scan cost over huge tables.","Flexible SQL vs scan latency and cost."],
+["Realtime Store","Druid / ClickHouse","Serve recent pre-aggregated metrics fast.","Memory for recent windows.","Sub-second recency vs limited history."],
+["Query / API","","Route queries to realtime or warehouse.","Fan-out and result merging.","Unified access vs routing complexity."],
+["Dashboards / BI","","Visualize metrics for users.","Concurrent dashboard load.","Insight vs query load."]
+],
+collab:[
+["Editors","Client","Make concurrent edits and see others live.","Many editors on one hot document.","Real-time collaboration vs sync complexity."],
+["WebSocket Gateway","","Stream ops bidirectionally per session.","Connection state per editor.","Instant sync vs stateful servers."],
+["Session / Room","","Group editors collaborating on one doc.","Hot rooms concentrate load.","Per-doc isolation vs room hotspots."],
+["OT / CRDT Engine","Operational Transformation / Conflict-free Replicated Data Type","Reconcile concurrent edits into one state.","Transform cost grows with concurrency.","Automatic convergence vs algorithmic complexity."],
+["Cursor / Presence","","Broadcast cursors and selections.","High-churn ephemeral updates.","Awareness vs broadcast volume."],
+["Op Log","Append-only operation log","Assign a total order to edits.","One ordering authority per doc.","Consistency vs per-doc write ceiling."],
+["Snapshot Store","","Periodic document snapshots.","Snapshot frequency vs replay length.","Fast joins vs snapshot storage."],
+["Persistence / Save","","Durably persist the document.","Save throughput on large docs.","Durability vs write cost."]
+],
+docedit:[
+["Editor client","","Edit rich text and render the document live.","Large docs strain client rendering.","Rich editing vs client memory."],
+["API Gateway","API Gateway","Entry for document CRUD, comments and export.","Every action passes an access check.","Central control vs a hop."],
+["Document Service","","Create, open and update documents.","Hot documents concentrate load.","Single source of truth vs per-doc hotspots."],
+["Autosave / Draft","Debounced autosave","Persist edits incrementally without data loss.","Write amplification if not debounced.","Never lose work vs write volume."],
+["Version History","","Snapshot the document over time.","Storing every change is unbounded.","Any version reconstructable vs storage cost."],
+["Comments / Suggestions","","Anchor threads and edits to doc positions.","Positions shift as the doc changes.","Collaboration vs anchor-stability complexity."],
+["Permissions / Sharing","ACL — Access Control List","Gate read / write / comment / export.","An ACL check on every request path.","Security vs added latency (cache hot docs)."],
+["Search Index","Inverted index","Full-text search across the user's docs.","Index freshness vs write cost.","Findability vs slower writes."],
+["Render / Export","","Produce PDF / HTML / print output.","Rendering is CPU-heavy; run async.","Fidelity vs compute cost."],
+["Document Store","Block / operational model store","Persist structured doc content, not a blob.","Hot-doc write contention.","Editable structure vs model complexity."],
+["Version Store","Append-only store","Hold snapshots and diffs for history.","Append growth over a doc's life.","Replayable history vs storage."],
+["Object Store","Blob storage","Store embedded images and attachments.","Per-object latency.","Cheap durable vs slower than block."]
+]
+};
+
+/* ---------- component ↔ diagram-node map (same order as COMP) ---------- */
+const NODEMAP = {
+master:[["CL"],["DNS"],["CDN"],["GLB"],["GW"],["RS"],["WS"],["CACHE"],["Q"],["WK"],["DB"],["IDX"],["OBJ"]],
+social:[["CL"],["GW"],["CDN"],["FEED"],["POST"],["RANK"],["FQ"],["FW"],["CACHE"],["GRAPH"],["TL"],["OBJ"]],
+messaging:[["CL","RC"],["LB"],["CG","CG2"],["SR"],["ROUTE"],["SEQ"],["PS"],["PC"],["PUB"],["DQ"],["PUSH"],["MS"]],
+marketplace:[["CL"],["WR"],["GW"],["SEARCH"],["GEO"],["BOOK"],["INV"],["PRICE"],["PAY"],["DB"],["LED"],["HOLD"]],
+storage:[["UP","VW"],["GW"],["CDN"],["WS"],["RS"],["META"],["HC"],["TQ"],["TW"],["MDB"],["CHUNK"],["OBJ"]],
+search:[["CL"],["LB"],["QS"],["QC"],["SCAT"],["S1","S2","S3"],["RANK"],["VEC"],["CRAWL"],["IDXER"]],
+fintech:[["CL"],["GW"],["IDEM"],["RISK"],["LEDGER"],["MATCH"],["ES"],["PROJ"],["RM"],["SETTLE"],["SS"]],
+rideshare:[["RIDER","DRIVER"],["GW"],["LOCING"],["GEO"],["MATCH"],["TRIP"],["ETA"],["SURGE"],["PAY"],["STREAM"],["TRIPDB"],["PAYLED"]],
+analytics:[["SRC"],["COLL"],["BUS"],["STREAMP"],["BATCH"],["DLAKE"],["WH"],["RT"],["QUERY"],["DASH"]],
+collab:[["CL1","CL2"],["WS"],["SESSION"],["OT"],["PRESENCE"],["LOG"],["SNAP"],["PERSIST"]],
+ratelimiter:[["CL"],["LB"],["GW"],["LIM"],["LOCAL"],["LUA"],["REDIS"],["SVC"],["REJECT"]],
+crawler:[["SEED"],["FRONT"],["FETCH"],["DNS"],["ROBOTS"],["PARSE"],["DEDUP"],["SEEN"],["RAW"],["IDXP"]],
+searchengine:[["CRAWL"],["DOCS"],["TOK"],["IDXER"],["DICT"],["POST"],["SHARDS"],["QP"],["COORD"],["RANK"],["RES"]],
+locks:[["C1","C2"],["LS"],["LEADER"],["F1","F2"],["LOG"],["LEASE"],["FENCE"],["RES"]],
+docedit:[["CL"],["GW"],["DOCSVC"],["AUTOSAVE"],["VERSION"],["COMMENT"],["ACL"],["SEARCH"],["RENDER"],["DOCDB"],["VERDB"],["BLOB"]]
+};
+
+/* ---------- CAP trade-off per design: [lean, rationale] ---------- */
+const CAP = {
+master:["Tunable","No single answer — the RDBMS system of record is CP, while caches, CDN and read replicas trade consistency for availability. Choose per data path."],
+social:["AP","Feeds stay available and may serve a slightly stale timeline; consistency is eventual — a new post becomes visible within seconds."],
+messaging:["AP","Messages are accepted and delivered through partitions; ordering is per-conversation and consistency is eventual with at-least-once + client dedup."],
+marketplace:["CP","Inventory must never double-book, so under partition the system rejects writes — sacrificing availability to preserve consistency."],
+rideshare:["Mixed","AP for live location and tracking (stale GPS is fine); CP for dispatch and trip/payment integrity, which must not double-assign or double-charge."],
+storage:["AP","Object reads stay available with eventual consistency; durability comes from replication / erasure coding, while metadata can be kept strongly consistent."],
+search:["AP","Query serving favours availability and tolerates a freshness lag — the index is eventually consistent with the source documents."],
+fintech:["CP","Money systems choose consistency: under partition they refuse to serve rather than risk a double-spend or an inconsistent ledger."],
+analytics:["AP","The pipeline stays available and ingests continuously; results are eventually consistent — exactly-once, but with processing lag."],
+collab:["Tunable","CRDTs are AP — always writable and self-converging; OT leans CP via a single ordering authority per document. The model you choose sets the trade-off."],
+docedit:["Mixed","The document and version store are the consistent system of record (CP); search and shared reads are AP with eventual consistency."],
+ratelimiter:["AP","Favours availability: local counters keep deciding during a partition, accepting slight over-limit; the fail-open / fail-closed switch can flip it toward CP."],
+crawler:["AP","Inherently best-effort and eventually consistent — availability over consistency; the seen-URL set may briefly disagree across nodes."],
+searchengine:["AP","Serving prioritises availability; the index is eventually consistent with crawled documents, i.e. a freshness lag."],
+locks:["CP","A lock service must be CP — it uses consensus and refuses progress under partition to guarantee mutual exclusion and avoid split-brain."]
+};
+
+/* ---------- legend ---------- */
+document.getElementById("legend").innerHTML = PRIMS.map((p,i)=>`
+  <div class="prim" data-p="${i}"><div class="n"><i></i>${p[0]}</div><div class="d">${p[1]}</div></div>`).join("");
+
+/* ---------- tabs ---------- */
+const tabsEl=document.getElementById("tabs");
+const FAM_COUNT = 11;
+const tabHTML = (s,i)=>`<div class="tab" role="tab" data-i="${i}" style="--tc:${s.color}" aria-selected="${i===0?'true':'false'}"><i></i>${s.name}</div>`;
+tabsEl.innerHTML =
+  `<div class="tabgroup"><span class="glabel">System families</span>`+
+  ALL.slice(0,FAM_COUNT).map((s,i)=>tabHTML(s,i)).join("")+`</div>`+
+  `<div class="tabgroup"><span class="glabel">Core designs</span>`+
+  ALL.slice(FAM_COUNT).map((s,i)=>tabHTML(s,i+FAM_COUNT)).join("")+`</div>`;
+
+/* ---------- theme + mermaid ---------- */
+let theme = "dark";
+let current = MASTER;
+const root = document.documentElement;
+
+function mermaidConfig(){
+  const dark = theme==="dark";
+  return {
+    startOnLoad:false, securityLevel:"loose",
+    theme:"base", fontFamily:"ui-monospace, Menlo, monospace",
+    flowchart:{ htmlLabels:true, curve:"basis", nodeSpacing:42, rankSpacing:54, padding:8 },
+    themeVariables:{
+      background:"transparent",
+      primaryColor: dark? "#172238":"#ffffff",
+      primaryBorderColor: dark? "#34425f":"#cdd7e8",
+      primaryTextColor: dark? "#e9eefb":"#16203a",
+      lineColor: dark? "#62719a":"#8b97b3",
+      clusterBkg: dark? "#0d1322":"#f3f6fc",
+      clusterBorder: dark? "#283450":"#d4dcec",
+      titleColor: dark? "#94a2c2":"#54607c",
+      edgeLabelBackground: dark? "#0a0e18":"#f5f7fb",
+      fontSize:"12.5px"
+    }
+  };
+}
+
+async function drawDiagram(s){
+  curKey=s.key;
+  const el=document.getElementById("diagram");
+  if(!window.mermaid){ el.innerHTML='<p style="color:var(--ink-dim);font-family:var(--mono);font-size:12px">Diagram engine unavailable (offline). The architecture is described in the panel.</p>'; return; }
+  const accent = theme==="dark"? s.color : s.colorLight;
+  const cf = getComputedStyle(root).getPropertyValue("--core-fill").trim();
+  const ct = getComputedStyle(root).getPropertyValue("--core-text").trim();
+  let def = s.mer.trim();
+  def += `\n  classDef hot fill:${cf},stroke:${accent},stroke-width:2.5px,color:${ct};`;
+  if(s.core.length) def += `\n  class ${s.core.join(",")} hot;`;
+  mermaid.initialize(mermaidConfig());
+  try{
+    const {svg}=await mermaid.render("d"+Math.random().toString(36).slice(2), def);
+    el.innerHTML=svg;
+    wireNodes();
+  }catch(e){ el.innerHTML='<p style="color:var(--bad);font-family:var(--mono);font-size:12px">Diagram failed to render.</p>'; console.error(e); }
+}
+
+function render(s){
+  current=s;
+  const accent = theme==="dark"? s.color : s.colorLight;
+  root.style.setProperty("--c", accent);
+  document.getElementById("title").innerHTML = s.key==="master"
+    ? `<b>Universal</b> request flow` : `<b>${s.name}</b> · architecture`;
+  document.getElementById("xcut").innerHTML =
+    `<span class="k">Cross-cutting</span>` + s.xcut.map(x=>`<span class="xtag">${x}</span>`).join("");
+  document.querySelectorAll(".prim").forEach((el,i)=>el.classList.toggle("hot", s.prims.includes(i)));
+  const comps = COMP[s.key]||[];
+  const compHTML = comps.map((cc,i)=>{
+    const n=cc[0],f=cc[1],p=cc[2],b=cc[3],t=cc[4];
+    const bn=(b&&b!=="—")?`<div class="cmeta"><span class="ck bn">Bottleneck</span><span>${b}</span></div>`:"";
+    const tr=(t&&t!=="—")?`<div class="cmeta"><span class="ck tr">Tradeoff</span><span>${t}</span></div>`:"";
+    return `<details class="cbox"${i===0?" open":""}><summary><span class="cn">${n}</span>${f?`<em class="cf">${f}</em>`:""}</summary><div class="cbody"><div class="cp">${p}</div>${bn}${tr}</div></details>`;
+  }).join("");
+  const cap=CAP[s.key]||["Tunable",""];
+  const _l=cap[0];
+  const _c=_l==="CP"?"on":_l==="AP"?"off":"mid";
+  const _a=_l==="AP"?"on":_l==="CP"?"off":"mid";
+  const _lbl={CP:"CP · consistency over availability",AP:"AP · availability over consistency",Mixed:"Mixed lean",Tunable:"Tunable"}[_l]||_l;
+  const capHTML=`<div class="cap"><div class="captri"><span class="capL ${_c}">C</span><span class="capL ${_a}">A</span><span class="capL on">P</span></div><div class="capmeta"><b>${_lbl}</b><br/>${cap[1]}</div></div>`;
+  document.getElementById("panel").innerHTML = `
+    <div class="ex">${s.ex}</div><h2>${s.name}</h2><div class="tag">${s.tag}</div>
+    ${capHTML}
+    <div class="sec"><h3>Components · purpose / bottleneck / tradeoff</h3>${compHTML}</div>
+    <div class="sec"><h3>SRE · SLOs</h3><ul class="lst slo">${s.slos.map(x=>`<li><span><b>${x[0]}</b> — ${x[1]}</span></li>`).join("")}</ul></div>`;
+  drawDiagram(s);
+}
+
+/* ---------- bidirectional highlighting ---------- */
+let curKey="master";
+let nodeEls={};
+function nodeIdOf(g){
+  const p=(g.id||"").split("-"); if(p.length<2) return g.id||"";
+  const last=p[p.length-1];
+  return (/^\d+$/.test(last)?p.slice(1,-1):p.slice(1)).join("-");
+}
+function clearHL(){
+  document.querySelectorAll("#diagram g.node.hl").forEach(g=>g.classList.remove("hl"));
+  document.querySelectorAll("#panel details.cbox.hl").forEach(d=>d.classList.remove("hl"));
+}
+function activate(ci, forceOpen){
+  const map=NODEMAP[curKey]||[];
+  clearHL();
+  (map[ci]||[]).forEach(id=>{ const g=nodeEls[id]; if(g) g.classList.add("hl"); });
+  const d=document.querySelectorAll("#panel details.cbox")[ci];
+  if(d){ if(forceOpen) d.open=true; d.classList.add("hl"); d.scrollIntoView({block:"nearest"}); }
+}
+function activateByNode(nid){
+  const map=NODEMAP[curKey]||[];
+  for(let ci=0;ci<map.length;ci++){ if(map[ci] && map[ci].includes(nid)){ activate(ci,true); return; } }
+}
+function wireNodes(){
+  nodeEls={};
+  const svg=document.querySelector("#diagram svg"); if(!svg) return;
+  svg.querySelectorAll("g.node").forEach(g=>{
+    const nid=nodeIdOf(g); nodeEls[nid]=g; g.style.cursor="pointer";
+    g.addEventListener("click",()=>activateByNode(nid));
+  });
+}
+document.getElementById("panel").addEventListener("click", e=>{
+  const sm=e.target.closest("summary"); if(!sm) return;
+  const d=sm.closest("details.cbox"); if(!d) return;
+  const list=[...document.querySelectorAll("#panel details.cbox")];
+  const ci=list.indexOf(d);
+  if(ci>=0) activate(ci,false);
+});
+
+/* ---------- theme toggle ---------- */
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const btn=document.getElementById("themeBtn");
+function applyThemeLabel(){ btn.innerHTML = (theme==="dark"? MOON+"<span>Dark</span>" : SUN+"<span>Light</span>"); }
+btn.addEventListener("click", ()=>{
+  theme = theme==="dark"?"light":"dark";
+  root.setAttribute("data-theme", theme);
+  applyThemeLabel();
+  render(current);
+});
+applyThemeLabel();
+
+/* ---------- wire tabs ---------- */
+tabsEl.addEventListener("click", e=>{
+  const t=e.target.closest(".tab"); if(!t) return;
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected","false"));
+  t.setAttribute("aria-selected","true");
+  render(ALL[+t.dataset.i]);
+});
+tabsEl.addEventListener("keydown", e=>{
+  if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
+  const sel=document.querySelector('.tab[aria-selected="true"]');
+  let i=(+sel.dataset.i + (e.key==="ArrowRight"?1:-1) + ALL.length)%ALL.length;
+  document.querySelectorAll(".tab")[i].click();
+});
+
+render(MASTER);
+</script>
+</body>
+</html>
