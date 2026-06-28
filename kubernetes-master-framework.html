@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kubernetes · CKA Master Framework</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e18; --bg-2:#0d1322; --panel:#121a2c; --panel-2:#172238;
+    --line:#283450; --line-soft:#1d2840;
+    --ink:#e9eefb; --ink-dim:#94a2c2; --ink-faint:#5d6a8a;
+    --rack:#326ce5; --c:var(--rack);
+    --core-fill:#1d2a44; --core-text:#eef4ff;
+    --good:#4ade80; --warn:#fbbf3c; --bad:#ff5d73;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:10px;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7fb; --bg-2:#eef2f9; --panel:#ffffff; --panel-2:#f3f6fc;
+    --line:#d4dcec; --line-soft:#e4e9f4;
+    --ink:#16203a; --ink-dim:#54607c; --ink-faint:#8b97b3;
+    --rack:#1d4ed8;
+    --core-fill:#eef4ff; --core-text:#10203a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 80% -10%, color-mix(in srgb,var(--c) 9%,transparent), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.5;
+    -webkit-font-smoothing:antialiased; padding:26px clamp(14px,4vw,48px) 60px;
+    transition:background .25s,color .25s;
+  }
+  .grid-overlay{position:fixed;inset:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:46px 46px;mask:radial-gradient(900px 600px at 70% 0,#000,transparent 75%)}
+
+  header{max-width:1280px;margin:0 auto 20px;position:relative}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.32em;color:var(--ink-faint);text-transform:uppercase}
+  h1{font-size:clamp(26px,4vw,40px);margin:.18em 0 .1em;letter-spacing:-.02em;font-weight:680}
+  h1 b{color:#22d3ee;font-weight:680}
+  .sub{color:var(--ink-dim);max-width:64ch;font-size:14.5px}
+  .toggle{position:absolute;top:2px;right:0;display:flex;gap:6px;align-items:center;
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-dim);
+    border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 12px;cursor:pointer;transition:.18s}
+  .toggle:hover{border-color:var(--ink-faint);color:var(--ink)}
+  .toggle svg{width:14px;height:14px;display:block}
+
+  .legend{max-width:1280px;margin:0 auto 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+  .prim{border:1px solid var(--line-soft);border-radius:8px;padding:9px 10px;background:var(--panel);transition:.2s}
+  .prim .n{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink);display:flex;gap:7px;align-items:center}
+  .prim .n i{width:7px;height:7px;border-radius:2px;background:var(--ink-faint);flex:none;transition:.2s}
+  .prim .d{font-size:11px;color:var(--ink-faint);margin-top:3px}
+  .prim.hot{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--panel))}
+  .prim.hot .n i{background:var(--c);box-shadow:0 0 9px var(--c)}
+  .prim.hot .d{color:var(--ink-dim)}
+
+  .tabs{max-width:1280px;margin:0 auto 16px}
+  .tabgroup{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .glabel{flex-basis:100%;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 1px}
+  .tab{font-family:var(--mono);font-size:12px;letter-spacing:.04em;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink-dim);
+    padding:9px 14px;border-radius:999px;transition:.18s;display:flex;align-items:center;gap:8px}
+  .tab i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.55}
+  .tab:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .tab[aria-selected="true"]{color:#fff;background:var(--tc,var(--c));border-color:var(--tc,var(--c));font-weight:600}
+  :root[data-theme="light"] .tab[aria-selected="true"]{color:#fff}
+  .tab[aria-selected="true"] i{background:#fff;opacity:.7}
+  .tab .w{font-family:var(--mono);font-size:10px;opacity:.7;margin-left:2px}
+
+  .stage{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 358px;gap:18px;align-items:start}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}.panel{position:static;max-height:none;overflow:visible}}
+
+  .canvas{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .canvas-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line-soft)}
+  .canvas-head .t{font-weight:640;font-size:15px}
+  .canvas-head .t b{color:var(--c)}
+  .canvas-head .flow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--ink-faint)}
+  .diagram{padding:18px 14px;min-height:320px;display:flex;justify-content:center;align-items:center;overflow:auto}
+  .diagram svg{max-width:100%;height:auto;animation:fade .35s ease}
+  .diagram .lat{font-size:.8em;opacity:.6;font-weight:400}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .xcut{display:flex;flex-wrap:wrap;gap:7px;padding:11px 14px;border-top:1px solid var(--line);background:var(--bg-2)}
+  .xcut .k{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase;align-self:center;margin-right:4px}
+  .xtag{font-family:var(--mono);font-size:11px;color:var(--ink-dim);border:1px dashed var(--line);border-radius:6px;padding:4px 8px}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 18px;position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto}
+  .panel .ex{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--c);margin-bottom:2px}
+  .panel h2{font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  .panel .tag{color:var(--ink-dim);font-size:13px;margin-bottom:14px}
+  .sec{margin-bottom:14px}
+  .sec h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 7px;display:flex;align-items:center;gap:8px}
+  .sec h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  ul.lst{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  ul.lst li{font-family:var(--mono);font-size:11px;color:var(--ink-dim);background:var(--bg-2);border:1px solid var(--line-soft);border-radius:6px;padding:5px 9px}
+  .slo{display:block}
+  .slo li{display:flex;gap:8px;font-family:var(--sans);font-size:12.5px;color:var(--ink-dim);padding:4px 0;border:none;background:none}
+  .slo li b{color:var(--ink);font-weight:600}
+  .slo li::before{content:"◆";color:var(--c);font-size:9px;margin-top:4px}
+  .cbox{border:1px solid var(--line-soft);border-radius:8px;margin-bottom:7px;background:var(--bg-2);overflow:hidden}
+  .cbox[open]{border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+  .cbox summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px;font-family:var(--mono);font-size:12px;color:var(--ink);user-select:none}
+  .cbox summary::-webkit-details-marker{display:none}
+  .cbox summary::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--c);flex:none;transition:.18s}
+  .cbox[open] summary::before{transform:rotate(45deg)}
+  .cn{font-weight:600}
+  .cf{font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.02em;color:var(--ink-faint);border:1px solid var(--line);border-radius:5px;padding:2px 6px;margin-left:auto;white-space:nowrap}
+  .cbody{padding:0 11px 11px 25px}
+  .cp{font-size:12.5px;color:var(--ink-dim);margin-bottom:7px}
+  .cmeta{font-size:12px;color:var(--ink-dim);display:flex;gap:7px;margin-top:5px;line-height:1.42}
+  .ck{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex:none;height:fit-content;margin-top:1px}
+  .ck.bn{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+  .ck.tr{color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+  .ck.cm{color:var(--good);background:color-mix(in srgb,var(--good) 15%,transparent)}
+  .cbox.hl{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+  .cbox.hl>summary{background:color-mix(in srgb,var(--c) 16%,transparent)}
+  .cap{display:flex;align-items:center;gap:11px;margin-bottom:14px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:8px;background:var(--bg-2)}
+  .ring{width:54px;height:54px;border-radius:50%;flex:none;position:relative;display:grid;place-items:center;
+    background:conic-gradient(var(--c) calc(var(--p,0)*1%), color-mix(in srgb,var(--c) 14%,transparent) 0);}
+  .ring::after{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--bg-2)}
+  .ring span{position:relative;z-index:1;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)}
+  .capmeta{font-size:12px;color:var(--ink-dim);line-height:1.42}
+  .capmeta b{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
+  .diagram g.node{transition:filter .15s}
+  .diagram g.node.hl rect,.diagram g.node.hl path,.diagram g.node.hl polygon,.diagram g.node.hl circle,.diagram g.node.hl ellipse{stroke:var(--c)!important;stroke-width:3px!important;filter:drop-shadow(0 0 5px var(--c))}
+  .footer{max-width:1280px;margin:22px auto 0;color:var(--ink-faint);font-size:12px;text-align:center;font-family:var(--mono);letter-spacing:.04em}
+  @media (prefers-reduced-motion:reduce){.diagram svg{animation:none}}
+</style>
+</head>
+<body>
+<div class="grid-overlay"></div>
+
+<header>
+  <button class="toggle" id="themeBtn" aria-label="Toggle theme"></button>
+  <div class="eyebrow">CKA Certification · Reference Architecture</div>
+  <h1>Kubernetes <b>Master Framework</b></h1>
+  <p class="sub">A single mental model for the entire Certified Kubernetes Administrator (CKA) exam. Switch domains to redraw the architecture, see which core primitives dominate, and zoom into each component's purpose, failure modes and exam-critical tradeoffs.</p>
+</header>
+
+<div class="legend" id="legend"></div>
+<div class="tabs" id="tabs" role="tablist"></div>
+
+<div class="stage">
+  <div class="canvas">
+    <div class="canvas-head">
+      <div class="t" id="title"></div>
+      <div class="flow">EDGE = INTERACTION · BOX = COMPONENT</div>
+    </div>
+    <div class="diagram" id="diagram"></div>
+    <div class="xcut" id="xcut"></div>
+  </div>
+  <aside class="panel" id="panel"></aside>
+</div>
+
+<div class="footer">CKA v1.30 · Cluster Architecture 25% · Workloads 15% · Networking 20% · Storage 10% · Troubleshooting 30%</div>
+
+<script>
+/* ---------- kubernetes primitives ---------- */
+const PRIMS = [
+  ["Control Plane","API server · etcd · scheduler · controllers"],
+  ["Node Plane","kubelet · kube-proxy · runtime"],
+  ["Workloads","Pods · Deployments · DaemonSets · Jobs"],
+  ["Scheduling","Affinity · taints · tolerations · QoS"],
+  ["Services","ClusterIP · NodePort · LB · Ingress"],
+  ["Networking","CNI · NetPol · CoreDNS"],
+  ["Storage","Volumes · PV/PVC · SC · CSI"],
+  ["Observability","Events · logs · metrics · probes"],
+];
+
+/* ---------- master / overview ---------- */
+const MASTER = {
+  key:"master", name:"Cluster Overview", color:"#326ce5", colorLight:"#1d4ed8",
+  ex:"BASELINE", tag:"The whole Kubernetes cluster on one page — control plane on the left, worker nodes on the right, the API server as the only door in.",
+  weight:100, weightLabel:"CKA",
+  mer:`flowchart TB
+  USER["kubectl / CI / Operator<br/><span class='lat'>API client</span>"]
+  subgraph CP["Control Plane"]
+    direction LR
+    API["kube-apiserver<br/><span class='lat'>REST · auth · admission</span>"]
+    ETCD[("etcd<br/>cluster state KV<br/><span class='lat'>Raft quorum</span>")]
+    SCHED["kube-scheduler<br/><span class='lat'>pod → node</span>"]
+    CM["kube-controller-manager<br/><span class='lat'>reconcile loops</span>"]
+    CCM["cloud-controller-manager<br/><span class='lat'>cloud LB / routes</span>"]
+  end
+  subgraph NODE["Worker Node"]
+    direction LR
+    KUBELET["kubelet<br/><span class='lat'>pod lifecycle</span>"]
+    PROXY["kube-proxy<br/><span class='lat'>service iptables/IPVS</span>"]
+    CRI["Container Runtime<br/>containerd / CRI-O<br/><span class='lat'>OCI</span>"]
+    POD["Pods<br/><span class='lat'>app containers</span>"]
+  end
+  CNI["CNI plugin<br/>Calico / Cilium / Flannel<br/><span class='lat'>pod network</span>"]
+  DNS["CoreDNS<br/><span class='lat'>cluster DNS</span>"]
+  USER -->|kubectl apply| API
+  API -->|read / write| ETCD
+  SCHED -->|watch unbound pods| API
+  CM -->|watch / reconcile| API
+  CCM -->|nodes · LB · routes| API
+  KUBELET -->|register · status| API
+  KUBELET -->|run pods| CRI
+  CRI -->|cgroups · netns| POD
+  KUBELET -->|attach| CNI
+  CNI -->|pod IP| POD
+  PROXY -->|service rules| POD
+  POD -->|service VIP| PROXY
+  POD -->|name → IP| DNS`,
+  core:["API","ETCD","SCHED","CM","KUBELET","PROXY","CRI","CNI","DNS"],
+  xcut:["Declarative API","Reconcile loops","Watch / list","Single source of truth = etcd","Failure isolation per node"],
+  prims:[0,1,2,3,4,5,6,7],
+  hard:[
+    ["Everything goes through the API server","No component talks to etcd directly except kube-apiserver. The API server is the only authenticator, authorizer and admission point."],
+    ["Reconcile, don't imperative","Controllers continuously diff desired state (spec) vs observed state (status) and act — restart, scale, replace. You declare; Kubernetes converges."],
+  ],
+  slos:[["API availability","HA control plane (≥3 etcd / API)"],["Reconcile lag","controllers re-queue on failure"],["Node health","kubelet heartbeats + readiness"]],
+};
+
+/* ---------- 6 exam domains ---------- */
+const SYSTEMS = [
+  /* 1 — INTRODUCTION */
+  {
+    key:"intro", name:"Introduction", color:"#22d3ee", colorLight:"#0e7490",
+    ex:"FOUNDATIONS · KUBECTL · OBJECTS",
+    tag:"How Kubernetes is shaped: declarative objects, the API server as the only writer to etcd, and reconcile loops that drive every behavior.",
+    weight:0, weightLabel:"REF",
+    mer:`flowchart TB
+  USER["You<br/><span class='lat'>operator</span>"]
+  KCTL["kubectl<br/><span class='lat'>CLI client</span>"]
+  KCFG[("kubeconfig<br/>~/.kube/config<br/><span class='lat'>contexts</span>")]
+  API["kube-apiserver<br/><span class='lat'>REST / watch</span>"]
+  AUTH["AuthN · AuthZ · Admission<br/><span class='lat'>RBAC · webhooks</span>"]
+  ETCD[("etcd<br/><span class='lat'>desired state</span>")]
+  CTRL["Controllers<br/><span class='lat'>reconcile loops</span>"]
+  SCHED["Scheduler<br/><span class='lat'>bind pods</span>"]
+  KUBELET["kubelet<br/><span class='lat'>on every node</span>"]
+  POD["Running Pod<br/><span class='lat'>observed state</span>"]
+  YAML["YAML manifest<br/><span class='lat'>Deployment · Service · …</span>"]
+  USER -->|edits| YAML
+  YAML -->|kubectl apply -f| KCTL
+  KCTL -->|loads| KCFG
+  KCTL -->|HTTPS · TLS| API
+  API -->|validate| AUTH
+  AUTH -->|persist spec| ETCD
+  CTRL -->|watch| API
+  SCHED -->|watch| API
+  CTRL -->|create child objects| API
+  SCHED -->|bind pod → node| API
+  KUBELET -->|watch its pods| API
+  KUBELET -->|reports status| API
+  KUBELET -->|runs| POD
+  POD -. observed status .-> API`,
+    core:["KCTL","KCFG","API","AUTH","ETCD","CTRL","SCHED","KUBELET","YAML"],
+    xcut:["Declarative spec","Watch / list / reconcile","Auth on every request","kubeconfig contexts","Imperative vs declarative"],
+    prims:[0,1,2],
+    hard:[
+      ["Declarative, not imperative","You describe the desired state in YAML; Kubernetes converges towards it. `kubectl apply` is the canonical workflow."],
+      ["The API server is the only door","Every component (kubelet, scheduler, controllers, you) reads and writes through kube-apiserver. Only the API server talks to etcd."],
+      ["Spec vs status","Every object has a `.spec` (what you want) and a `.status` (what is). Controllers close the gap."],
+      ["kubectl basics","get / describe / apply / edit / logs / exec / port-forward / explain. Master `-o yaml`, `--dry-run=client`, and `kubectl explain` for the exam."],
+    ],
+    slos:[["Manifest correctness","apply --dry-run=server before commit"],["Context safety","kubectl config use-context"],["Imperative speed","kubectl create … --dry-run=client -o yaml > file.yaml for the exam"]],
+  },
+  /* 2 — CLUSTER ARCHITECTURE, INSTALLATION & CONFIG (25%) */
+  {
+    key:"cluster", name:"Cluster Architecture", color:"#a78bfa", colorLight:"#6d28d9",
+    ex:"INSTALL · CONFIG · HA · UPGRADES",
+    tag:"Installing and operating the cluster itself: kubeadm bootstrap, HA control plane, etcd, RBAC, and upgrades.",
+    weight:25, weightLabel:"25%",
+    mer:`flowchart TB
+  ADM["Admin<br/><span class='lat'>kubeadm</span>"]
+  LB["Control-plane LB<br/>HA VIP<br/><span class='lat'>:6443</span>"]
+  subgraph CP["Control plane (×N for HA)"]
+    direction LR
+    API["kube-apiserver<br/><span class='lat'>stateless</span>"]
+    ETCD[("etcd<br/>quorum (3 / 5)<br/><span class='lat'>Raft</span>")]
+    SCHED["kube-scheduler<br/><span class='lat'>leader-elected</span>"]
+    CM["controller-manager<br/><span class='lat'>leader-elected</span>"]
+  end
+  RBAC["RBAC<br/>Role · ClusterRole<br/><span class='lat'>authz</span>"]
+  ADMIT["Admission<br/>validating / mutating<br/><span class='lat'>webhooks</span>"]
+  KUBEADM["kubeadm init / join<br/><span class='lat'>bootstrap</span>"]
+  CERTS[("PKI<br/>ca.crt · ca.key<br/><span class='lat'>10y CA · 1y leaf</span>")]
+  WORKER["Worker nodes<br/><span class='lat'>kubelet · kube-proxy</span>"]
+  BKP[("etcd snapshot<br/><span class='lat'>etcdctl snapshot save</span>")]
+  UPG["Upgrade path<br/><span class='lat'>n → n+1 only</span>"]
+  ADM -->|kubeadm init| KUBEADM
+  KUBEADM -->|generates| CERTS
+  KUBEADM -->|brings up| API
+  KUBEADM -->|brings up| ETCD
+  ADM -->|kubectl| LB
+  LB -->|fronts| API
+  API -->|persists| ETCD
+  API -->|gate every req| RBAC
+  API -->|gate every req| ADMIT
+  SCHED -->|leader-elect| API
+  CM -->|leader-elect| API
+  KUBEADM -->|kubeadm join| WORKER
+  WORKER -->|kubelet| API
+  ETCD -->|periodic| BKP
+  ADM -->|drain · kubeadm upgrade| UPG
+  UPG -->|rolls| CP
+  UPG -->|rolls| WORKER`,
+    core:["LB","API","ETCD","SCHED","CM","RBAC","ADMIT","CERTS","BKP","KUBEADM"],
+    xcut:["HA = ≥3 etcd","Leader election","RBAC least-privilege","etcd backup is mandatory","Skip-level upgrades not allowed"],
+    prims:[0,1],
+    hard:[
+      ["HA control plane","Stateless components (apiserver, scheduler, CM) scale horizontally behind a LB. The state lives in etcd — run 3 or 5 members for quorum."],
+      ["kubeadm lifecycle","`kubeadm init` for the first control plane, `kubeadm join` for additional nodes, `kubeadm upgrade plan / apply` for upgrades. PKI lives under /etc/kubernetes/pki."],
+      ["etcd backup & restore","`etcdctl snapshot save` regularly; `snapshot restore` on disaster. Always test restore. Snapshots are point-in-time of the whole cluster state."],
+      ["RBAC model","Role (namespaced) / ClusterRole (cluster-wide) bound via RoleBinding / ClusterRoleBinding to a user, group or ServiceAccount."],
+      ["Upgrade order","Upgrade kubeadm → control plane → kubelet on control-plane nodes → workers (drain, upgrade kubelet, uncordon). Never skip a minor version."],
+    ],
+    slos:[["Control-plane availability","≥3 control-plane nodes, LB in front"],["Backup RPO","etcd snapshot interval ≤ tolerance"],["Upgrade safety","one minor version at a time, drain first"]],
+  },
+  /* 3 — WORKLOADS & SCHEDULING (15%) */
+  {
+    key:"workloads", name:"Workloads & Scheduling", color:"#4ade80", colorLight:"#15803d",
+    ex:"DEPLOYMENT · DAEMONSET · SCHEDULER",
+    tag:"How pods are created, scaled, rolled out, and placed on the right nodes — the heart of running applications.",
+    weight:15, weightLabel:"15%",
+    mer:`flowchart TB
+  USER["kubectl apply<br/><span class='lat'>Deployment.yaml</span>"]
+  API["kube-apiserver"]
+  DEPLOY[("Deployment<br/><span class='lat'>desired replicas · strategy</span>")]
+  RS[("ReplicaSet<br/><span class='lat'>maintains N pods</span>")]
+  POD["Pod template<br/><span class='lat'>containers · probes · resources</span>"]
+  STS[("StatefulSet<br/><span class='lat'>stable id · ordered</span>")]
+  DS[("DaemonSet<br/><span class='lat'>1 pod per node</span>")]
+  JOB[("Job / CronJob<br/><span class='lat'>run-to-completion</span>")]
+  HPA["HPA<br/>metrics-server<br/><span class='lat'>auto-scale</span>"]
+  SCHED["kube-scheduler<br/><span class='lat'>filter → score → bind</span>"]
+  TAINT["Taints / Tolerations<br/><span class='lat'>node repulsion</span>"]
+  AFF["Affinity / Anti-affinity<br/><span class='lat'>placement hints</span>"]
+  QOS["Resource requests/limits<br/>QoS class<br/><span class='lat'>Guaranteed / Burstable / BestEffort</span>"]
+  CFG[("ConfigMap / Secret<br/><span class='lat'>config / creds</span>")]
+  NODE["Worker node<br/><span class='lat'>chosen</span>"]
+  USER -->|apply| API
+  API -->|creates| DEPLOY
+  DEPLOY -->|owns| RS
+  RS -->|creates pods from| POD
+  API -. variants .- STS
+  API -. variants .- DS
+  API -. variants .- JOB
+  HPA -->|patches replicas| DEPLOY
+  POD -->|mounts| CFG
+  POD -->|declares| QOS
+  POD -->|unbound| SCHED
+  SCHED -->|honors| TAINT
+  SCHED -->|honors| AFF
+  SCHED -->|binds to| NODE`,
+    core:["DEPLOY","RS","POD","STS","DS","JOB","HPA","SCHED","TAINT","AFF","QOS","CFG"],
+    xcut:["Owner references","Rolling updates","Probes (liveness/readiness/startup)","Pod QoS & eviction","Scheduling predicates"],
+    prims:[2,3],
+    hard:[
+      ["Deployment vs StatefulSet vs DaemonSet","Deployment = stateless replicas. StatefulSet = stable identity & ordered rollout. DaemonSet = exactly one pod per (matching) node. Job / CronJob = run to completion."],
+      ["Rolling update mechanics","Deployment maintains two ReplicaSets during a rollout. `maxSurge` and `maxUnavailable` control the pace; `kubectl rollout status / undo` to inspect and roll back."],
+      ["Probes","Liveness restarts a stuck container; readiness gates Service endpoints; startup gives slow-booting apps grace. Misconfigured probes are a top failure mode."],
+      ["Requests, limits, QoS","Requests reserve capacity for the scheduler; limits cap usage on the node. Guaranteed = req==limit, Burstable = some set, BestEffort = none. Eviction order follows QoS."],
+      ["Taints, tolerations, affinity","Taints repel pods from nodes; tolerations let pods accept them. NodeAffinity / podAffinity attract or spread. Use `nodeSelector` for simple cases."],
+      ["Config & Secrets","ConfigMaps and Secrets mount as env vars or files. Secrets are base64 — encrypt-at-rest is a control-plane concern, not the object itself."],
+    ],
+    slos:[["Rollout safety","maxUnavailable=0, readiness probes correct"],["Capacity correctness","requests reflect real usage"],["Placement","critical pods tolerate node-pressure taints"]],
+  },
+  /* 4 — SERVICES & NETWORKING (20%) */
+  {
+    key:"network", name:"Services & Networking", color:"#fb923c", colorLight:"#c2410c",
+    ex:"SERVICE · INGRESS · CNI · NETPOL",
+    tag:"How pods get IPs, find each other by name, are exposed to the world, and have their traffic governed.",
+    weight:20, weightLabel:"20%",
+    mer:`flowchart TB
+  EXT["External client<br/><span class='lat'>internet</span>"]
+  LB["Cloud Load Balancer<br/><span class='lat'>type=LoadBalancer</span>"]
+  ING["Ingress / Gateway<br/>nginx · traefik<br/><span class='lat'>L7 host/path</span>"]
+  SVC["Service<br/>ClusterIP · NodePort · LB<br/><span class='lat'>stable VIP</span>"]
+  EP[("Endpoints / EndpointSlice<br/><span class='lat'>healthy pod IPs</span>")]
+  PROXY["kube-proxy<br/>iptables / IPVS<br/><span class='lat'>DNAT to pod</span>"]
+  CNI["CNI plugin<br/>Calico · Cilium · Flannel<br/><span class='lat'>pod-to-pod overlay</span>"]
+  CDNS["CoreDNS<br/><span class='lat'>svc.ns.svc.cluster.local</span>"]
+  NP["NetworkPolicy<br/><span class='lat'>L3/L4 allow rules</span>"]
+  POD1["Pod A<br/><span class='lat'>10.x.x.x</span>"]
+  POD2["Pod B<br/><span class='lat'>10.x.x.y</span>"]
+  EXT -->|HTTPS| LB
+  LB -->|routes to| ING
+  ING -->|host/path → svc| SVC
+  EXT -. NodePort .-> SVC
+  SVC -->|selects| EP
+  EP -->|programs| PROXY
+  PROXY -->|DNAT| POD2
+  POD1 -->|name lookup| CDNS
+  CDNS -->|returns VIP| POD1
+  POD1 -->|pod network| CNI
+  CNI -->|delivers| POD2
+  NP -. gate .-> POD2`,
+    core:["LB","ING","SVC","EP","PROXY","CNI","CDNS","NP"],
+    xcut:["Service types","DNS naming","kube-proxy modes","CNI plugin choice","NetworkPolicy default-deny"],
+    prims:[4,5],
+    hard:[
+      ["Service types","ClusterIP (in-cluster VIP), NodePort (exposes on every node :30000-32767), LoadBalancer (cloud LB), ExternalName (CNAME). Headless (`clusterIP: None`) returns pod IPs directly via DNS."],
+      ["Ingress vs Service","Service is L4; Ingress is L7 host/path routing, TLS termination, rewrites. Ingress needs an Ingress controller (nginx, traefik) actually running."],
+      ["DNS within the cluster","CoreDNS serves `<svc>.<ns>.svc.cluster.local`. Pods in the same namespace can use the short name. Use `nslookup` from a busybox pod to debug."],
+      ["kube-proxy modes","iptables (default) or IPVS (better at scale). Both DNAT from a Service VIP to a backend pod IP listed in the EndpointSlice."],
+      ["CNI is required","Pod-to-pod networking is plugin-driven: Calico, Cilium, Flannel. Without a CNI, pods stay Pending / NotReady. Cilium is eBPF-based and can also do NetPol & service routing."],
+      ["NetworkPolicy","Namespaced L3/L4 firewall by pod label. The cluster is default-allow until at least one policy matches; then it becomes default-deny for that direction."],
+    ],
+    slos:[["Service availability","readiness probes drive Endpoints"],["DNS p99","sub-10 ms in-cluster"],["Policy posture","default-deny per namespace"]],
+  },
+  /* 5 — STORAGE (10%) */
+  {
+    key:"storage", name:"Storage", color:"#fbbf3c", colorLight:"#b45309",
+    ex:"PV · PVC · STORAGECLASS · CSI",
+    tag:"How a pod gets a disk: claims, classes, dynamic provisioning, and the CSI plugins that actually attach volumes.",
+    weight:10, weightLabel:"10%",
+    mer:`flowchart TB
+  POD["Pod<br/><span class='lat'>requests volume</span>"]
+  PVC[("PersistentVolumeClaim<br/><span class='lat'>size · access mode</span>")]
+  SC[("StorageClass<br/><span class='lat'>provisioner · params</span>")]
+  PV[("PersistentVolume<br/>cluster resource<br/><span class='lat'>bound to PVC</span>")]
+  PROV["External Provisioner<br/><span class='lat'>watches PVCs</span>"]
+  CSI["CSI Driver<br/>controller + node plugin<br/><span class='lat'>attach · mount</span>"]
+  DISK[("Backing storage<br/>EBS · Ceph · NFS · local<br/><span class='lat'>physical / cloud</span>")]
+  KUBELET["kubelet<br/><span class='lat'>mounts into pod</span>"]
+  CFG[("ConfigMap / Secret / emptyDir<br/><span class='lat'>ephemeral volumes</span>")]
+  RECLAIM["Reclaim policy<br/>Retain / Delete<br/><span class='lat'>after PVC delete</span>"]
+  POD -->|claims| PVC
+  PVC -->|requests class| SC
+  SC -->|provisioner triggers| PROV
+  PROV -->|creates| PV
+  PVC -. binds to .-> PV
+  CSI -->|provisions| DISK
+  PROV -->|drives| CSI
+  KUBELET -->|node-stage / publish| CSI
+  CSI -->|mount path| KUBELET
+  KUBELET -->|bind mount| POD
+  POD -. also .- CFG
+  PV -->|on delete| RECLAIM`,
+    core:["PVC","SC","PV","PROV","CSI","DISK","KUBELET","RECLAIM"],
+    xcut:["Dynamic provisioning","Access modes (RWO/RWX/ROX)","Reclaim policy","CSI is the modern API","Volume expansion"],
+    prims:[6],
+    hard:[
+      ["PV vs PVC vs StorageClass","PVC is the pod's request ('5 Gi, RWO'). StorageClass tells Kubernetes how to provision it. PV is the actual provisioned volume bound to the PVC."],
+      ["Dynamic provisioning","With a StorageClass that points at a CSI provisioner, creating a PVC automatically creates a matching PV. Without it, an admin must pre-create PVs (static)."],
+      ["Access modes","ReadWriteOnce (single node), ReadOnlyMany, ReadWriteMany (true shared), ReadWriteOncePod (single pod). Most block storage is RWO; NFS/CephFS gives RWX."],
+      ["CSI architecture","Controller plugin (provision / attach) usually runs as a Deployment; node plugin (mount) runs as a DaemonSet. Together they implement the Container Storage Interface."],
+      ["Reclaim policy","`Delete` removes the underlying disk when the PVC is deleted; `Retain` keeps it for manual recovery. Always Retain for production data."],
+      ["Ephemeral volumes","emptyDir (pod-lifetime scratch), projected (combined ConfigMap/Secret/SA token), generic ephemeral. ConfigMap/Secret mount as files or env vars."],
+    ],
+    slos:[["Bind latency","PVC bound within seconds via dynamic provisioning"],["Data durability","Retain policy + backups for stateful data"],["Failover","RWX or replicated CSI for multi-node access"]],
+  },
+  /* 6 — TROUBLESHOOTING (30%) */
+  {
+    key:"trouble", name:"Troubleshooting", color:"#ff5d73", colorLight:"#e11d48",
+    ex:"PODS · NODES · CONTROL PLANE · NETWORK",
+    tag:"The biggest exam slice. A repeatable playbook: status → describe → logs → events → exec → node — then up the stack to services, DNS and the control plane.",
+    weight:30, weightLabel:"30%",
+    mer:`flowchart TB
+  ISSUE["Symptom<br/><span class='lat'>app down / pending / CrashLoop</span>"]
+  GET["kubectl get pods -A<br/><span class='lat'>scope it</span>"]
+  DESC["kubectl describe<br/><span class='lat'>Events + conditions</span>"]
+  LOGS["kubectl logs<br/>--previous · -c container<br/><span class='lat'>container stdout/err</span>"]
+  EXEC["kubectl exec -it<br/><span class='lat'>shell inside pod</span>"]
+  EVT["kubectl get events<br/><span class='lat'>cluster timeline</span>"]
+  NODE["kubectl describe node<br/><span class='lat'>pressure · taints</span>"]
+  CRI["crictl / journalctl -u kubelet<br/><span class='lat'>runtime + kubelet</span>"]
+  NET["DNS / Service / NetPol<br/><span class='lat'>nslookup · curl svc</span>"]
+  CP["Control-plane health<br/>static pods · /healthz<br/><span class='lat'>/etc/kubernetes/manifests</span>"]
+  METRICS["metrics-server<br/>top pod / node<br/><span class='lat'>resource pressure</span>"]
+  FIX["Remediate<br/><span class='lat'>edit · rollout · drain · cordon</span>"]
+  ISSUE -->|step 1| GET
+  GET -->|step 2| DESC
+  DESC -->|recent events| EVT
+  DESC -->|container failing| LOGS
+  LOGS -. needs runtime ctx .-> EXEC
+  GET -->|pending pod| NODE
+  NODE -. node NotReady .-> CRI
+  GET -->|service unreachable| NET
+  NET -->|cluster-wide| CP
+  GET -->|throttling / OOM| METRICS
+  EVT --> FIX
+  LOGS --> FIX
+  NODE --> FIX
+  NET --> FIX
+  CP --> FIX
+  METRICS --> FIX`,
+    core:["GET","DESC","LOGS","EXEC","EVT","NODE","CRI","NET","CP","METRICS","FIX"],
+    xcut:["Top-down playbook","Events are gold","kubectl logs --previous","journalctl + crictl","metrics-server for resource pain"],
+    prims:[7,1,0],
+    hard:[
+      ["The standard playbook","get → describe → logs → events → exec → node → control plane. 80% of CKA troubleshooting questions are solved within the first three steps."],
+      ["Pod statuses decoded","Pending = unschedulable (resources/taints/PVC). ImagePullBackOff = registry/credential issue. CrashLoopBackOff = container exits — read `kubectl logs --previous`. OOMKilled = limits too low. Init = blocked on initContainer."],
+      ["Node NotReady","kubelet down or unreachable. SSH in, check `systemctl status kubelet`, `journalctl -u kubelet`, then the container runtime via `crictl ps / pods / logs`."],
+      ["Service / DNS issues","Run a debug pod (`kubectl run tmp --image=busybox -it -- sh`) and use `nslookup svc.ns`, then `wget -O- svc:port`. Check Endpoints — empty = readiness probe failing."],
+      ["Control-plane down","On kubeadm clusters the control plane is static pods under `/etc/kubernetes/manifests/`. `crictl ps` on the control-plane node, check kubelet logs, validate certs (`openssl x509 -in … -noout -dates`)."],
+      ["Resource pressure","Install metrics-server. `kubectl top pod / node` shows CPU/memory; high usage + low limits → throttling or OOMKills. Node taints `node.kubernetes.io/memory-pressure` push pods off."],
+    ],
+    slos:[["MTTR","root-caused in minutes via playbook"],["Visibility","events retained, logs accessible"],["Self-healing","probes + restarts handle transient faults"]],
+  },
+];
+
+const ALL = [MASTER, ...SYSTEMS];
+
+/* ---------- per-component breakdown: [name, full-form, purpose, gotcha, command/tip] ---------- */
+const COMP = {
+master:[
+["kubectl / CI / Operator","Kubernetes CLI / pipeline / human","Origin of every change to the cluster — issues REST calls against kube-apiserver.","Wrong kubeconfig context = changes to the wrong cluster.","kubectl config current-context · use-context"],
+["kube-apiserver","Kubernetes API server","The single front door — validates, authenticates, authorizes and admits every request, then persists to etcd.","If apiserver is down, the whole control plane is read-only at best.","kubectl get --raw /healthz · /readyz · /livez"],
+["etcd","etcd distributed KV store","The cluster's source of truth — every object spec/status lives here, replicated by Raft.","Quorum loss (≥ ⌊N/2⌋ down) freezes the cluster; never run 2 members.","etcdctl endpoint health · snapshot save"],
+["kube-scheduler","Kubernetes scheduler","Watches unbound pods and binds them to nodes via filter → score → bind.","Pods Pending forever if no node satisfies requests, taints or affinity.","kubectl get pod -o wide · describe shows scheduling events"],
+["kube-controller-manager","Controller manager (bundle)","Runs the in-tree controllers (Deployment, ReplicaSet, Node, ServiceAccount, …) that reconcile state.","A wedged controller silently fails to converge — check leader-election and logs.","kubectl -n kube-system logs deploy/kube-controller-manager"],
+["cloud-controller-manager","Cloud controller manager","Integrates with the cloud: nodes, LBs, routes, persistent disks.","Cloud quota or IAM issues surface as stuck Services / nodes here.","kubectl -n kube-system logs deploy/cloud-controller-manager"],
+["kubelet","Node agent","On every node: pulls images, runs containers via CRI, reports node & pod status to the API.","kubelet down → node NotReady → pods evicted after timeout.","systemctl status kubelet · journalctl -u kubelet"],
+["kube-proxy","Service proxy","Programs iptables/IPVS rules on each node to implement Service VIPs and load-balance to pod IPs.","kube-proxy down on a node = Service traffic blackholes for pods on that node.","kubectl -n kube-system get ds kube-proxy"],
+["Container Runtime","containerd / CRI-O (OCI)","Actually runs containers — image pulls, cgroups, namespaces.","Runtime crash hides as 'container creating' / ImagePullBackOff.","crictl ps · crictl pods · crictl logs"],
+["Pods","Smallest deployable unit","One or more containers sharing a network namespace and volumes.","Multi-container pods share localhost; sidecar order can matter.","kubectl describe pod · -c container for logs/exec"],
+["CNI plugin","Container Network Interface","Plugs pod network: assigns pod IPs and wires routing/overlay (Calico, Cilium, Flannel).","Without a CNI, pods stay NotReady; mismatched CIDRs break routing.","kubectl get pods -A · check /etc/cni/net.d"],
+["CoreDNS","In-cluster DNS","Resolves Service / Pod DNS names within the cluster.","CoreDNS pod failure → name resolution fails clusterwide.","kubectl -n kube-system get pods -l k8s-app=kube-dns"]
+],
+intro:[
+["You","Operator","Author of intent — edits YAML and runs kubectl.","Imperative commands skip review and tend to drift.","Prefer apply -f over create / edit"],
+["kubectl","Kubernetes CLI","Translates intent into REST calls against the API server.","--namespace defaults to default — easy to miss.","alias k=kubectl · kubectl config set-context --current --namespace=…"],
+["kubeconfig","~/.kube/config","Holds clusters, users and contexts; selects which API server kubectl hits.","Multiple contexts in one file → wrong-cluster mistakes.","kubectl config get-contexts · use-context"],
+["kube-apiserver","API server","The only client that writes etcd; performs auth, validation, admission and serves watches.","All requests are auth'd — bad RBAC = Forbidden 403.","kubectl auth can-i …"],
+["Auth / Admission","AuthN · AuthZ · Admission","Every request is authenticated, authorized (RBAC), then admitted (validating/mutating webhooks).","Webhooks can deny or mutate silently — read kube-apiserver logs.","kubectl get validatingwebhookconfigurations"],
+["etcd","Distributed KV","Persisted desired (spec) and observed (status) state for every object.","Direct etcd writes bypass admission — never edit etcd by hand.","etcdctl get / --prefix --keys-only | head"],
+["Controllers","Reconcile loops","Watch objects, diff spec vs status, take corrective action.","A controller crash = no reconciliation; objects look 'stuck'.","kubectl -n kube-system logs deploy/kube-controller-manager"],
+["Scheduler","Pod placement","Picks a node for each unbound pod by filtering and scoring.","Pending pod → describe it; the events explain why.","kubectl describe pod | tail -n 20"],
+["kubelet","Node agent","Materializes pods on its node and reports back.","Node not registered? kubelet can't talk to apiserver.","journalctl -u kubelet -f"],
+["Pod","Running workload","The observed manifestation of your intent.","Pod phase ≠ readiness — a Running pod can still be 0/1 Ready.","kubectl get pod -o wide"],
+["YAML manifest","Declarative spec","Your intent expressed as a Kubernetes object.","Wrong indentation / apiVersion = applies silently to the wrong kind.","kubectl explain deploy.spec.template"]
+],
+cluster:[
+["Admin","Cluster operator","Initiates install, upgrades and recovery operations.","Mixing kubeadm versions across nodes leads to incompatible state.","kubeadm version · kubectl version"],
+["Control-plane LB","HA VIP / external LB","Distributes :6443 across multiple API servers.","Without an LB, HA control plane has no single endpoint clients can trust.","kubectl get --raw /healthz from the VIP"],
+["kube-apiserver","Stateless front door","Horizontally scalable since state lives in etcd.","Cert / SAN mismatch = TLS handshake fails on the LB.","openssl s_client -connect VIP:6443"],
+["etcd","Raft KV cluster","Stores everything; needs odd-numbered members for quorum (3 or 5).","A 2-node etcd is worse than 1 — any failure breaks quorum.","etcdctl endpoint status -w table"],
+["kube-scheduler","Leader-elected","One active scheduler at a time via lease.","Two leaders = double-binds; rare but possible with broken lease.","kubectl -n kube-system get lease"],
+["controller-manager","Leader-elected","Same leader-election model as scheduler.","Failed leader-election = no reconciliation, but no obvious error.","kubectl -n kube-system describe lease kube-controller-manager"],
+["RBAC","Role-Based Access Control","Role / ClusterRole bound to a subject (user, group, ServiceAccount).","Cluster-admin bindings leak fast — audit them.","kubectl auth can-i --as=user:foo get pods"],
+["Admission","Validating / mutating webhooks","Mutate or reject objects after AuthZ but before persistence.","A broken webhook fails closed by default — can lock you out of the cluster.","kubectl get mutatingwebhookconfigurations"],
+["PKI","Public Key Infrastructure","TLS certs for every control-plane component, kubelet and admin user.","Kubelet client certs auto-rotate; CA expires in ~10 years — track it.","kubeadm certs check-expiration"],
+["kubeadm","Cluster bootstrapper","Initializes and joins control-plane and worker nodes; also drives upgrades.","kubeadm only — it doesn't manage app workloads or addons.","kubeadm init · join · upgrade plan / apply"],
+["Worker nodes","kubelet + kube-proxy + runtime","Where workloads actually run.","A drained node is cordoned and pods evicted — remember to uncordon.","kubectl drain --ignore-daemonsets · uncordon"],
+["etcd snapshot","Backup file","Point-in-time snapshot of the entire cluster state.","Backups untested = no backups; always practice restore.","ETCDCTL_API=3 etcdctl snapshot save · snapshot restore"],
+["Upgrade path","kubeadm upgrade","Sequential minor upgrade across control plane then nodes.","Skipping a minor version (1.27 → 1.29) is unsupported.","kubeadm upgrade plan · apply v1.30.x"]
+],
+workloads:[
+["kubectl apply","Declarative apply","Submits desired state to the API server.","apply -f vs create -f: create errors on existing objects.","kubectl apply -f deploy.yaml --record"],
+["kube-apiserver","API server","Single write path for all workload objects.","Throttling under high churn = slow rollouts.","kubectl get --raw /metrics | grep apiserver_request_total"],
+["Deployment","Workload object","Manages a ReplicaSet that maintains N stateless pod replicas with rolling updates.","Rollouts pause silently if readiness probes fail.","kubectl rollout status / undo / history deploy/foo"],
+["ReplicaSet","Pod replicator","Owned by Deployment; ensures replicas count of identical pods.","Manual edits to ReplicaSets get overwritten by Deployment.","kubectl get rs --show-labels"],
+["Pod template","spec.template","Defines the pod the controller will create (containers, probes, volumes).","Changing the template triggers a rollout — small typos cause real downtime.","kubectl explain deploy.spec.template.spec"],
+["StatefulSet","Stable workload","Stable network identity (pod-N) and ordered, persistent rollout for stateful apps.","Headless service is required; PVCs are created per replica.","kubectl get sts -o wide · pvc -l app=foo"],
+["DaemonSet","Per-node pod","Runs one pod per (selected) node — log shippers, CNI agents, node exporters.","Doesn't roll out via Deployment — has its own rollout API.","kubectl rollout status ds/fluentd"],
+["Job / CronJob","Run-to-completion","Job runs pods to success; CronJob schedules Jobs on a cron expression.","CronJob without concurrencyPolicy can overlap and overload.","kubectl get jobs · cronjobs"],
+["HPA","Horizontal Pod Autoscaler","Scales replicas based on metrics (CPU, memory, custom).","Needs metrics-server; tiny replica counts oscillate.","kubectl autoscale deploy foo --min=2 --max=10 --cpu-percent=70"],
+["kube-scheduler","Pod placement","filter (predicates) → score → bind to a node.","Pending = no node satisfied filters; describe the pod.","kubectl describe pod | grep -A3 Events"],
+["Taints / Tolerations","Node repulsion","Taints mark nodes 'do not place pods here unless tolerated'.","NoSchedule vs NoExecute — the latter evicts running pods.","kubectl taint nodes node1 key=value:NoSchedule"],
+["Affinity / Anti-affinity","Placement preferences","NodeAffinity selects nodes by label; podAffinity/anti-affinity by other pods' labels.","preferred is a soft hint; required can block scheduling.","spec.affinity.nodeAffinity.requiredDuringScheduling…"],
+["Resource requests/limits","CPU / memory","Requests reserve scheduler capacity; limits cap runtime usage; together set QoS class.","No requests = BestEffort = first to be evicted.","kubectl describe node | grep -A5 'Allocated'"],
+["ConfigMap / Secret","Config & creds","Mount as env vars or files into pods.","Secrets are base64, not encrypted in transit unless TLS — enable encryption at rest.","kubectl create secret generic … --from-literal"]
+],
+network:[
+["External client","Off-cluster caller","Source of north-south traffic (browser, mobile, partner).","Skipping Ingress and exposing NodePort to the internet leaks node IPs.","curl -v https://app.example.com"],
+["Cloud Load Balancer","Type=LoadBalancer Service","Cloud provider provisions an external L4 LB pointing at NodePorts.","Costs per LB; cloud quota can pin Service in <pending>.","kubectl get svc -o wide"],
+["Ingress / Gateway","L7 router","Host- and path-based routing, TLS termination, rewrites — needs a controller (nginx, traefik).","An Ingress object with no controller does nothing.","kubectl get ingressclass · -A get ingress"],
+["Service","Stable VIP for pods","ClusterIP / NodePort / LoadBalancer / ExternalName / headless.","Selectors must match pod labels exactly — typos = empty Endpoints.","kubectl get endpoints svc-name"],
+["Endpoints / EndpointSlice","Backend list","List of healthy pod IPs:ports that a Service load-balances to.","Pods failing readiness drop from Endpoints — outage hides as 'no endpoints'.","kubectl get endpointslices -l kubernetes.io/service-name=foo"],
+["kube-proxy","Service implementation","Programs iptables or IPVS rules on each node.","iptables rules grow O(N×M) — switch to IPVS at scale.","ipvsadm -ln · iptables-save | grep KUBE-SVC"],
+["CNI plugin","Pod networking","Assigns pod IPs and connects them across nodes (Calico, Cilium, Flannel).","CIDR overlap with the underlay network kills pod-to-pod.","kubectl get pods -A · ip route · ip -d link"],
+["CoreDNS","Cluster DNS","Serves <svc>.<ns>.svc.cluster.local and pod records.","ndots:5 in resolv.conf causes lots of negative lookups.","kubectl -n kube-system logs deploy/coredns"],
+["NetworkPolicy","L3/L4 pod firewall","Namespaced ingress/egress allow rules by pod selector and namespace.","Requires a NetPol-capable CNI (Calico, Cilium); default Flannel ignores them.","kubectl get netpol -A"],
+["Pod","Sender / receiver","Each pod gets a unique cluster IP; sees Services via DNS.","NetworkPolicy default-deny needs at least one matching policy to take effect.","kubectl exec pod -- nslookup svc"]
+],
+storage:[
+["Pod","Volume consumer","Mounts volumes into containers at given paths.","Container can fail to start if mount path conflicts or perms are wrong.","kubectl describe pod · Events"],
+["PersistentVolumeClaim","Pod's request","Asks for a volume of a given size and access mode.","Pending PVC = no matching PV / no provisioner.","kubectl get pvc · describe pvc"],
+["StorageClass","Provisioning template","Defines the provisioner and parameters for dynamic provisioning.","Default StorageClass is per-cluster — annotate to mark one default.","kubectl get sc · annotate sc … is-default-class=true"],
+["PersistentVolume","Cluster volume","The actual provisioned volume — bound 1:1 to a PVC.","Manually-created PVs need matching capacity / access modes / labels.","kubectl get pv · describe pv"],
+["External Provisioner","CSI external-provisioner","Watches PVCs and creates PVs via the CSI driver.","Crashed provisioner = PVCs stuck Pending.","kubectl -n kube-system get pods | grep provisioner"],
+["CSI Driver","Container Storage Interface","Pluggable storage backend — controller plugin (provision/attach) + node plugin (mount).","Driver version must match Kubernetes minor version.","kubectl get csidrivers · csinodes"],
+["Backing storage","EBS / Ceph / NFS / local","The actual disk — cloud block, network FS, local SSD.","Local volumes are tied to the node; pod can't move.","Provider console / ceph status / showmount"],
+["kubelet","Mount manager","Calls CSI to stage and publish volumes; bind-mounts into the pod.","node-publish failure surfaces as 'volume mount failed' events.","journalctl -u kubelet | grep -i mount"],
+["Ephemeral volumes","emptyDir / projected / generic","Lifetime tied to the pod; great for scratch space and tmpfs.","emptyDir.memory → counts against memory limit.","spec.volumes: emptyDir: {medium: Memory}"],
+["Reclaim policy","Delete / Retain","Behavior when the PVC is deleted.","Delete + production data = data loss with one kubectl delete.","kubectl patch pv … reclaimPolicy: Retain"]
+],
+trouble:[
+["Symptom","Reported issue","User-visible failure or alert that starts the investigation.","Reproduce or scope first — don't chase ghosts.","kubectl get events --sort-by=.lastTimestamp -A | tail"],
+["kubectl get pods","Scope command","Lists status, restarts, age across namespaces — your first move.","Wrong namespace hides the bad pod.","kubectl get pods -A -o wide"],
+["kubectl describe","Object details + Events","Shows scheduler, kubelet and controller events for an object.","Events are kept ~1h by default — capture them fast.","kubectl describe pod foo"],
+["kubectl logs","Container logs","Stdout/stderr of a container; --previous gets the last crash.","No logs = container never started; check Events instead.","kubectl logs foo -c app --previous"],
+["kubectl exec","Shell inside pod","Run commands inside a running container for live debugging.","Some images have no shell — use kubectl debug or an ephemeral container.","kubectl exec -it foo -- sh"],
+["kubectl get events","Cluster timeline","Scheduling, image pull, OOM, eviction events surface here.","Mind the namespace and sort by timestamp.","kubectl get events --sort-by=.lastTimestamp"],
+["kubectl describe node","Node detail","Conditions, taints, allocatable, recent events.","NotReady → check kubelet on that node.","kubectl describe node node-1"],
+["crictl / kubelet","Runtime + agent","Direct view of containers/pods on the node and kubelet logs.","Use crictl, not docker, on modern clusters.","crictl ps -a · crictl logs <id>"],
+["DNS / Service / NetPol","Network triage","Resolve names, hit Services, inspect Endpoints and policies.","No Endpoints = readiness failing or selector typo.","kubectl run tmp --image=busybox -it -- nslookup svc"],
+["Control-plane health","Static pods & /healthz","kubeadm clusters run apiserver/etcd/scheduler/CM as static pods under /etc/kubernetes/manifests.","Editing a static-pod manifest restarts that component immediately.","kubectl get --raw /healthz · crictl ps on cp node"],
+["metrics-server","Resource metrics","Powers kubectl top — required for HPA and OOM diagnosis.","Not installed by default on kubeadm clusters.","kubectl top pod / node"],
+["Remediate","Fix action","Edit / rollout / drain / cordon / scale / restart.","Rollback first, then root-cause — restore service before deep dive.","kubectl rollout undo deploy/foo · drain node"]
+]
+};
+
+/* ---------- component ↔ diagram-node map (same order as COMP) ---------- */
+const NODEMAP = {
+master:[["USER"],["API"],["ETCD"],["SCHED"],["CM"],["CCM"],["KUBELET"],["PROXY"],["CRI"],["POD"],["CNI"],["DNS"]],
+intro:[["USER"],["KCTL"],["KCFG"],["API"],["AUTH"],["ETCD"],["CTRL"],["SCHED"],["KUBELET"],["POD"],["YAML"]],
+cluster:[["ADM"],["LB"],["API"],["ETCD"],["SCHED"],["CM"],["RBAC"],["ADMIT"],["CERTS"],["KUBEADM"],["WORKER"],["BKP"],["UPG"]],
+workloads:[["USER"],["API"],["DEPLOY"],["RS"],["POD"],["STS"],["DS"],["JOB"],["HPA"],["SCHED"],["TAINT"],["AFF"],["QOS"],["CFG"]],
+network:[["EXT"],["LB"],["ING"],["SVC"],["EP"],["PROXY"],["CNI"],["CDNS"],["NP"],["POD1","POD2"]],
+storage:[["POD"],["PVC"],["SC"],["PV"],["PROV"],["CSI"],["DISK"],["KUBELET"],["CFG"],["RECLAIM"]],
+trouble:[["ISSUE"],["GET"],["DESC"],["LOGS"],["EXEC"],["EVT"],["NODE"],["CRI"],["NET"],["CP"],["METRICS"],["FIX"]]
+};
+
+/* ---------- legend ---------- */
+document.getElementById("legend").innerHTML = PRIMS.map((p,i)=>`
+  <div class="prim" data-p="${i}"><div class="n"><i></i>${p[0]}</div><div class="d">${p[1]}</div></div>`).join("");
+
+/* ---------- tabs ---------- */
+const tabsEl=document.getElementById("tabs");
+const tabHTML = (s,i)=>`<div class="tab" role="tab" data-i="${i}" style="--tc:${s.color}" aria-selected="${i===0?'true':'false'}"><i></i>${s.name}${s.weightLabel&&s.key!=="master"?`<span class="w">${s.weightLabel}</span>`:""}</div>`;
+tabsEl.innerHTML =
+  `<div class="tabgroup"><span class="glabel">Overview</span>`+
+  tabHTML(ALL[0],0)+`</div>`+
+  `<div class="tabgroup"><span class="glabel">Exam domains</span>`+
+  ALL.slice(1).map((s,i)=>tabHTML(s,i+1)).join("")+`</div>`;
+
+/* ---------- theme + mermaid ---------- */
+let theme = "dark";
+let current = MASTER;
+const root = document.documentElement;
+
+function mermaidConfig(){
+  const dark = theme==="dark";
+  return {
+    startOnLoad:false, securityLevel:"loose",
+    theme:"base", fontFamily:"ui-monospace, Menlo, monospace",
+    flowchart:{ htmlLabels:true, curve:"basis", nodeSpacing:42, rankSpacing:54, padding:8 },
+    themeVariables:{
+      background:"transparent",
+      primaryColor: dark? "#172238":"#ffffff",
+      primaryBorderColor: dark? "#34425f":"#cdd7e8",
+      primaryTextColor: dark? "#e9eefb":"#16203a",
+      lineColor: dark? "#62719a":"#8b97b3",
+      clusterBkg: dark? "#0d1322":"#f3f6fc",
+      clusterBorder: dark? "#283450":"#d4dcec",
+      titleColor: dark? "#94a2c2":"#54607c",
+      edgeLabelBackground: dark? "#0a0e18":"#f5f7fb",
+      fontSize:"12.5px"
+    }
+  };
+}
+
+async function drawDiagram(s){
+  curKey=s.key;
+  const el=document.getElementById("diagram");
+  if(!window.mermaid){ el.innerHTML='<p style="color:var(--ink-dim);font-family:var(--mono);font-size:12px">Diagram engine unavailable (offline). The architecture is described in the panel.</p>'; return; }
+  const accent = theme==="dark"? s.color : s.colorLight;
+  const cf = getComputedStyle(root).getPropertyValue("--core-fill").trim();
+  const ct = getComputedStyle(root).getPropertyValue("--core-text").trim();
+  let def = s.mer.trim();
+  def += `\n  classDef hot fill:${cf},stroke:${accent},stroke-width:2.5px,color:${ct};`;
+  if(s.core.length) def += `\n  class ${s.core.join(",")} hot;`;
+  mermaid.initialize(mermaidConfig());
+  try{
+    const {svg}=await mermaid.render("d"+Math.random().toString(36).slice(2), def);
+    el.innerHTML=svg;
+    wireNodes();
+  }catch(e){ el.innerHTML='<p style="color:var(--bad);font-family:var(--mono);font-size:12px">Diagram failed to render.</p>'; console.error(e); }
+}
+
+function render(s){
+  current=s;
+  const accent = theme==="dark"? s.color : s.colorLight;
+  root.style.setProperty("--c", accent);
+  document.getElementById("title").innerHTML = s.key==="master"
+    ? `<b>Kubernetes</b> cluster overview` : `<b>${s.name}</b> · ${s.weightLabel||""}`;
+  document.getElementById("xcut").innerHTML =
+    `<span class="k">Key ideas</span>` + s.xcut.map(x=>`<span class="xtag">${x}</span>`).join("");
+  document.querySelectorAll(".prim").forEach((el,i)=>el.classList.toggle("hot", s.prims.includes(i)));
+  const comps = COMP[s.key]||[];
+  const compHTML = comps.map((cc,i)=>{
+    const n=cc[0],f=cc[1],p=cc[2],b=cc[3],t=cc[4];
+    const bn=(b&&b!=="—")?`<div class="cmeta"><span class="ck bn">Gotcha</span><span>${b}</span></div>`:"";
+    const tr=(t&&t!=="—")?`<div class="cmeta"><span class="ck cm">Command</span><span><code>${t}</code></span></div>`:"";
+    return `<details class="cbox"${i===0?" open":""}><summary><span class="cn">${n}</span>${f?`<em class="cf">${f}</em>`:""}</summary><div class="cbody"><div class="cp">${p}</div>${bn}${tr}</div></details>`;
+  }).join("");
+  const w = s.weight ?? 0;
+  const wlbl = s.weightLabel || "";
+  const capHTML = s.key==="master"
+    ? `<div class="cap"><div class="ring" style="--p:100"><span>100%</span></div><div class="capmeta"><b>CKA exam · full surface</b><br/>Six domains, one mental model — start here, then drill into a domain tab.</div></div>`
+    : (s.key==="intro"
+      ? `<div class="cap"><div class="ring" style="--p:10"><span>REF</span></div><div class="capmeta"><b>Reference primer</b><br/>Not weighted itself, but every other domain assumes these concepts cold.</div></div>`
+      : `<div class="cap"><div class="ring" style="--p:${w}"><span>${wlbl}</span></div><div class="capmeta"><b>Exam weight · ${wlbl}</b><br/>${s.tag}</div></div>`);
+  document.getElementById("panel").innerHTML = `
+    <div class="ex">${s.ex}</div><h2>${s.name}</h2><div class="tag">${s.tag}</div>
+    ${capHTML}
+    <div class="sec"><h3>Components · purpose / gotcha / command</h3>${compHTML}</div>
+    <div class="sec"><h3>What can break</h3>${(s.hard||[]).map(h=>`<details class="cbox"><summary><span class="cn">${h[0]}</span></summary><div class="cbody"><div class="cp">${h[1]}</div></div></details>`).join("")||"—"}</div>
+    <div class="sec"><h3>SLOs / success</h3><ul class="lst slo">${s.slos.map(x=>`<li><span><b>${x[0]}</b> — ${x[1]}</span></li>`).join("")}</ul></div>`;
+  drawDiagram(s);
+}
+
+/* ---------- bidirectional highlighting ---------- */
+let curKey="master";
+let nodeEls={};
+function nodeIdOf(g){
+  const p=(g.id||"").split("-"); if(p.length<2) return g.id||"";
+  const last=p[p.length-1];
+  return (/^\d+$/.test(last)?p.slice(1,-1):p.slice(1)).join("-");
+}
+function clearHL(){
+  document.querySelectorAll("#diagram g.node.hl").forEach(g=>g.classList.remove("hl"));
+  document.querySelectorAll("#panel details.cbox.hl").forEach(d=>d.classList.remove("hl"));
+}
+function activate(ci, forceOpen){
+  const map=NODEMAP[curKey]||[];
+  clearHL();
+  (map[ci]||[]).forEach(id=>{ const g=nodeEls[id]; if(g) g.classList.add("hl"); });
+  const d=document.querySelectorAll("#panel .sec details.cbox")[ci];
+  if(d){ if(forceOpen) d.open=true; d.classList.add("hl"); d.scrollIntoView({block:"nearest"}); }
+}
+function activateByNode(nid){
+  const map=NODEMAP[curKey]||[];
+  for(let ci=0;ci<map.length;ci++){ if(map[ci] && map[ci].includes(nid)){ activate(ci,true); return; } }
+}
+function wireNodes(){
+  nodeEls={};
+  const svg=document.querySelector("#diagram svg"); if(!svg) return;
+  svg.querySelectorAll("g.node").forEach(g=>{
+    const nid=nodeIdOf(g); nodeEls[nid]=g; g.style.cursor="pointer";
+    g.addEventListener("click",()=>activateByNode(nid));
+  });
+}
+document.getElementById("panel").addEventListener("click", e=>{
+  const sm=e.target.closest("summary"); if(!sm) return;
+  const d=sm.closest("details.cbox"); if(!d) return;
+  const sec=sm.closest(".sec"); if(!sec) return;
+  if(!/Components/.test(sec.querySelector("h3").textContent)) return;
+  const list=[...sec.querySelectorAll("details.cbox")];
+  const ci=list.indexOf(d);
+  if(ci>=0) activate(ci,false);
+});
+
+/* ---------- theme toggle ---------- */
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const btn=document.getElementById("themeBtn");
+function applyThemeLabel(){ btn.innerHTML = (theme==="dark"? MOON+"<span>Dark</span>" : SUN+"<span>Light</span>"); }
+btn.addEventListener("click", ()=>{
+  theme = theme==="dark"?"light":"dark";
+  root.setAttribute("data-theme", theme);
+  applyThemeLabel();
+  render(current);
+});
+applyThemeLabel();
+
+/* ---------- wire tabs ---------- */
+tabsEl.addEventListener("click", e=>{
+  const t=e.target.closest(".tab"); if(!t) return;
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected","false"));
+  t.setAttribute("aria-selected","true");
+  render(ALL[+t.dataset.i]);
+});
+tabsEl.addEventListener("keydown", e=>{
+  if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
+  const sel=document.querySelector('.tab[aria-selected="true"]');
+  let i=(+sel.dataset.i + (e.key==="ArrowRight"?1:-1) + ALL.length)%ALL.length;
+  document.querySelectorAll(".tab")[i].click();
+});
+
+render(MASTER);
+</script>
+</body>
+</html>
