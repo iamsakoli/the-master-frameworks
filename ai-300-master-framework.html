@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-300 · MLOps Engineer Associate</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e18; --bg-2:#0d1322; --panel:#121a2c; --panel-2:#172238;
+    --line:#283450; --line-soft:#1d2840;
+    --ink:#e9eefb; --ink-dim:#94a2c2; --ink-faint:#5d6a8a;
+    --rack:#9db4d4; --c:var(--rack);
+    --core-fill:#1d2a44; --core-text:#eef4ff;
+    --good:#4ade80; --warn:#fbbf3c; --bad:#fb7185;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:10px;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7fb; --bg-2:#eef2f9; --panel:#ffffff; --panel-2:#f3f6fc;
+    --line:#d4dcec; --line-soft:#e4e9f4;
+    --ink:#16203a; --ink-dim:#54607c; --ink-faint:#8b97b3;
+    --rack:#3a5a86;
+    --core-fill:#eef4ff; --core-text:#10203a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:radial-gradient(1200px 700px at 80% -10%, color-mix(in srgb,var(--c) 9%,transparent), transparent 60%),var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding:26px clamp(14px,4vw,48px) 60px; transition:background .25s,color .25s;
+  }
+  .grid-overlay{position:fixed;inset:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:46px 46px;mask:radial-gradient(900px 600px at 70% 0,#000,transparent 75%)}
+  header{max-width:1280px;margin:0 auto 16px;position:relative}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--ink-faint);text-transform:uppercase}
+  h1{font-size:clamp(24px,4vw,38px);margin:.18em 0 .12em;letter-spacing:-.02em;font-weight:680}
+  h1 b{color:var(--c);font-weight:680}
+  .sub{color:var(--ink-dim);max-width:74ch;font-size:14px}
+  .sub b{color:var(--ink);font-weight:600}
+  .toggle{position:absolute;top:2px;right:0;display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-dim);border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 12px;cursor:pointer;transition:.18s}
+  .toggle:hover{border-color:var(--ink-faint);color:var(--ink)}
+  .toggle svg{width:14px;height:14px;display:block}
+
+  .wstrip{max-width:1280px;margin:0 auto 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .wcard{border:1px solid var(--line-soft);border-radius:8px;padding:9px 11px;background:var(--panel)}
+  .wcard .wn{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--ink);display:flex;justify-content:space-between;gap:8px}
+  .wcard .wn b{color:var(--wc)}
+  .wbar{height:5px;border-radius:3px;background:var(--line-soft);margin-top:7px;overflow:hidden}
+  .wbar i{display:block;height:100%;background:var(--wc);border-radius:3px}
+
+  .tabs{max-width:1280px;margin:0 auto 16px;display:flex;flex-wrap:wrap;gap:8px}
+  .tab{font-family:var(--mono);font-size:12px;letter-spacing:.03em;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink-dim);padding:9px 14px;border-radius:999px;transition:.18s;display:flex;align-items:center;gap:8px}
+  .tab i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.55}
+  .tab:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .tab[aria-selected="true"]{color:#fff;background:var(--tc,var(--c));border-color:var(--tc,var(--c));font-weight:600}
+  .tab[aria-selected="true"] i{background:#fff;opacity:.7}
+
+  .stage{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:18px;align-items:start}
+  @media(max-width:980px){.stage{grid-template-columns:1fr}.panel{position:static;max-height:none;overflow:visible}}
+
+  .canvas{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .canvas-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line-soft)}
+  .canvas-head .t{font-weight:640;font-size:15px}
+  .canvas-head .t b{color:var(--c)}
+  .canvas-head .flow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-faint)}
+  .diagram{padding:18px 14px;min-height:320px;display:flex;justify-content:center;align-items:center;overflow:auto}
+  .diagram svg{max-width:100%;height:auto;animation:fade .35s ease}
+  .diagram .svc{font-size:.82em;opacity:.62;font-weight:400}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .diagram g.node{transition:filter .15s}
+  .diagram g.node.hl rect,.diagram g.node.hl path,.diagram g.node.hl polygon,.diagram g.node.hl circle,.diagram g.node.hl ellipse{stroke:var(--c)!important;stroke-width:3px!important;filter:drop-shadow(0 0 5px var(--c))}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 18px;position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto}
+  .panel .ex{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--c);margin-bottom:2px}
+  .panel h2{font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  .panel .tag{color:var(--ink-dim);font-size:13px;margin-bottom:14px}
+  .sec{margin-bottom:14px}
+  .sec h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 7px;display:flex;align-items:center;gap:8px}
+  .sec h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  ul.lst{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  ul.lst li{font-family:var(--mono);font-size:11px;color:var(--ink-dim);background:var(--bg-2);border:1px solid var(--line-soft);border-radius:6px;padding:5px 9px}
+  .facts{display:flex;flex-direction:column;gap:8px}
+  .fact{display:flex;gap:10px;font-size:12.5px}
+  .fact .fk{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);flex:none;width:92px;padding-top:2px}
+  .fact .fv{color:var(--ink-dim)}
+  .fact .fv b{color:var(--ink);font-weight:600}
+  .wbig{display:flex;flex-direction:column;gap:9px}
+  .wrow{font-size:12px}
+  .wrow .wl{display:flex;justify-content:space-between;color:var(--ink-dim);margin-bottom:4px}
+  .wrow .wl b{color:var(--ink);font-weight:600}
+  .wrow .wbar2{height:7px;border-radius:4px;background:var(--line-soft);overflow:hidden}
+  .wrow .wbar2 i{display:block;height:100%;border-radius:4px}
+  .cbox{border:1px solid var(--line-soft);border-radius:8px;margin-bottom:7px;background:var(--bg-2);overflow:hidden}
+  .cbox[open]{border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+  .cbox.hl{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+  .cbox.hl>summary{background:color-mix(in srgb,var(--c) 16%,transparent)}
+  .cbox summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px;font-family:var(--mono);font-size:12px;color:var(--ink);user-select:none}
+  .cbox summary::-webkit-details-marker{display:none}
+  .cbox summary::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--c);flex:none;transition:.18s}
+  .cbox[open] summary::before{transform:rotate(45deg)}
+  .cn{font-weight:600}
+  .cf{font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.02em;color:var(--ink-faint);border:1px solid var(--line);border-radius:5px;padding:2px 6px;margin-left:auto;white-space:nowrap}
+  .cbody{padding:0 11px 11px 25px}
+  .cp{font-size:12.5px;color:var(--ink-dim);margin-bottom:7px}
+  .cmeta{font-size:12px;color:var(--ink-dim);display:flex;gap:7px;margin-top:5px;line-height:1.42}
+  .ck{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex:none;height:fit-content;margin-top:1px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+  .note{max-width:1280px;margin:18px auto 0;font-size:11.5px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.02em;text-align:center}
+  @media (prefers-reduced-motion:reduce){.diagram svg{animation:none}}
+</style>
+</head>
+<body>
+<div class="grid-overlay"></div>
+
+<header>
+  <button class="toggle" id="themeBtn" aria-label="Toggle theme"></button>
+  <div class="eyebrow">Microsoft Certified · Associate</div>
+  <h1><b>AI-300</b> · Machine Learning Operations Engineer</h1>
+  <p class="sub">Study framework for Exam <b>AI-300 — Operationalizing Machine Learning &amp; Generative AI Solutions</b>. Five domains spanning <b>MLOps</b> on Azure Machine Learning and <b>GenAIOps</b> on Microsoft Foundry. Pick a domain to see its workflow, Azure services, and per-skill exam notes.</p>
+</header>
+
+<div class="wstrip" id="wstrip"></div>
+<div class="tabs" id="tabs" role="tablist"></div>
+
+<div class="stage">
+  <div class="canvas">
+    <div class="canvas-head">
+      <div class="t" id="title"></div>
+      <div class="flow">EDGE = ACTION · BOX = AZURE SERVICE</div>
+    </div>
+    <div class="diagram" id="diagram"></div>
+  </div>
+  <aside class="panel" id="panel"></aside>
+</div>
+
+<div class="note">Beta exam (Mar 2026) — content may shift before GA. Always confirm against the official AI-300 study guide on Microsoft Learn.</div>
+
+<script>
+/* ---------- exam facts ---------- */
+const FACTS=[
+["Certification","Machine Learning Operations Engineer Associate"],
+["Exam","AI-300 · Operationalizing ML & GenAI Solutions"],
+["Status","Beta (Mar 2026) · GA expected May 2026"],
+["Replaces","DP-100 Azure Data Scientist — retires 1 Jun 2026"],
+["Pass score","700 / 1000"],
+["Duration","~100–120 min · proctored"],
+["Renewal","Free annual online assessment on MS Learn"],
+["Core tools","Azure ML · Foundry · GitHub Actions · Bicep · Azure CLI · MLflow"]
+];
+
+/* ---------- domains ---------- */
+const MASTER={
+  key:"master", name:"AIOps Lifecycle", color:"#9db4d4", colorLight:"#3a5a86", weight:"BLUEPRINT", w:0,
+  blurb:"The end-to-end loop the exam tests — infrastructure, build/train, register, deploy, evaluate, observe, optimize — across both classic ML and generative AI.",
+  mer:`flowchart TB
+  INFRA["Infrastructure<br/><span class='svc'>AML Workspace · Foundry · IaC</span>"]
+  BUILD["Build / Train<br/><span class='svc'>AutoML · MLflow · Prompts</span>"]
+  REG["Register / Version<br/><span class='svc'>Model & prompt registry</span>"]
+  DEPLOY["Deploy<br/><span class='svc'>Online / Batch · Foundation models</span>"]
+  EVAL["Evaluate<br/><span class='svc'>Responsible AI · GenAI metrics</span>"]
+  OBS["Monitor / Observe<br/><span class='svc'>Drift · Latency · Cost</span>"]
+  OPT["Optimize<br/><span class='svc'>RAG · Fine-tune</span>"]
+  INFRA -->|provision| BUILD
+  BUILD -->|track| REG
+  REG -->|promote| DEPLOY
+  DEPLOY -->|validate| EVAL
+  EVAL -->|observe| OBS
+  OBS -->|feedback| OPT
+  OPT -->|retrain / redeploy| BUILD`,
+  core:["INFRA","BUILD","REG","DEPLOY","EVAL","OBS","OPT"],
+  notes:[
+    ["Infrastructure","Domain 1 · 15–20%","Stand up the AML workspace and Foundry project as code (Bicep + Azure CLI) with datastores, compute, RBAC and private networking.","IaC + GitHub Actions automation is the recurring theme."],
+    ["Build / Train","Domain 2 · 25–30%","Train ML models (AutoML, sweeps, pipelines) and author/version GenAI prompts, tracking runs with MLflow and Git.","Largest domain — know MLflow and endpoints cold."],
+    ["Register / Version","Domain 2","Register MLflow models and prompt variants, version them, and evaluate with Responsible AI before promotion.","'Package a feature-retrieval spec with the model' is a named skill."],
+    ["Deploy","Domain 2 / 3","Serve ML via managed online or batch endpoints; serve GenAI via serverless API or managed compute, with PTU for scale.","Online = real-time; Batch = scheduled high-throughput."],
+    ["Evaluate","Domain 4 · 10–15%","Score quality (groundedness, relevance, coherence, fluency) and run risk/safety checks pre- and post-release.","The four quality metric names are highly testable."],
+    ["Monitor / Observe","Domain 2 / 4","Track data drift and model performance for ML; latency, throughput, token cost and traces for GenAI in Foundry.","Configure retrain/alert triggers on threshold breach."],
+    ["Optimize","Domain 5 · 10–15%","Tune RAG (chunking, thresholds, hybrid search, embeddings) and fine-tune with synthetic data; A/B test gains.","Know the RAG knobs and the fine-tuning lifecycle."]
+  ]
+};
+
+const DOMAINS=[
+  {
+    key:"infra", name:"MLOps Infrastructure", color:"#60a5fa", colorLight:"#1d4ed8", weight:"15–20%", w:17.5,
+    blurb:"Provision and secure the Azure ML workspace and its assets as code — the foundation everything else deploys onto.",
+    mer:`flowchart TB
+  GIT["Git / GitHub<br/><span class='svc'>source control</span>"]
+  GHA["GitHub Actions<br/><span class='svc'>CI/CD automation</span>"]
+  BICEP["Bicep + Azure CLI<br/><span class='svc'>IaC</span>"]
+  WS["AML Workspace<br/><span class='svc'>hub for everything</span>"]
+  DS[("Datastores<br/><span class='svc'>Blob / ADLS</span>")]
+  COMPUTE["Compute Targets<br/><span class='svc'>instance · cluster</span>"]
+  RBAC["Managed Identity · RBAC<br/><span class='svc'>least privilege</span>"]
+  ASSETS["Assets<br/><span class='svc'>data · env · components</span>"]
+  REGISTRY[("Registries<br/><span class='svc'>cross-workspace share</span>")]
+  NET["Private Networking<br/><span class='svc'>VNet · private endpoint</span>"]
+  GIT -->|trigger| GHA
+  GHA -->|deploy| BICEP
+  BICEP -->|provision| WS
+  WS -->|attach| DS
+  WS -->|attach| COMPUTE
+  WS -->|secure| RBAC
+  WS -->|register| ASSETS
+  ASSETS -->|publish| REGISTRY
+  WS -->|restrict| NET`,
+    core:["WS","GHA","BICEP","ASSETS","REGISTRY","RBAC"],
+    services:["AML Workspace","Datastores","Compute","RBAC / Managed Identity","Bicep","Azure CLI","GitHub Actions","ML Registries"],
+    notes:[
+      ["Workspace","Azure ML Workspace","Top-level container for assets, jobs, endpoints and compute. Manage via Studio, CLI v2 or SDK.","Everything (datastores, compute, models) lives under the workspace."],
+      ["Datastores","Datastore","Secure references to Blob / ADLS Gen2; the workspace brokers credentials.","Prefer identity-based access over account keys."],
+      ["Compute targets","Compute","Compute instances for dev; compute clusters (autoscale to zero) for training; inference compute for serving.","Clusters scale to zero for cost; instances are per-user dev boxes."],
+      ["Identity & access","Managed Identity · RBAC","Assign Azure RBAC roles (e.g. AzureML Data Scientist) with managed identities.","Least-privilege; avoid keys, scope roles at workspace / RG."],
+      ["Assets","Data · Environments · Components","Versioned, reusable: data assets, curated/custom environments (conda/Docker), and pipeline components.","Environments are versioned images; components are reusable steps."],
+      ["Registries","ML Registry","Share and promote models, components and environments across workspaces and regions.","Registry = cross-workspace sharing + dev→test→prod promotion."],
+      ["Git + GitHub Actions","GitHub Actions","Source-control ML projects and run CI/CD that trains, registers and deploys.","Automating provisioning + deployment via Actions is core and repeated."],
+      ["IaC: Bicep + CLI","Bicep · Azure CLI","Declaratively provision workspaces and resources from templates.","'Implement IaC for Machine Learning' is an explicit skill — know Bicep."],
+      ["Network isolation","Private networking","Lock the workspace behind a managed VNet / private endpoints; disable public access.","'Restrict network access to ML workspaces' is listed verbatim."]
+    ]
+  },
+  {
+    key:"lifecycle", name:"ML Model Lifecycle & Ops", color:"#4ade80", colorLight:"#15803d", weight:"25–30%", w:27.5,
+    blurb:"The largest domain — train, track, register, deploy and monitor traditional ML models end to end.",
+    mer:`flowchart TB
+  DATA[("Data Asset")]
+  AUTOML["AutoML<br/><span class='svc'>model search</span>"]
+  TRAIN["Training Pipeline<br/><span class='svc'>script · distributed</span>"]
+  SWEEP["Hyperparameter Sweep<br/><span class='svc'>early termination</span>"]
+  MLFLOW["MLflow<br/><span class='svc'>experiment tracking</span>"]
+  REG[("Model Registry<br/><span class='svc'>MLflow model</span>")]
+  RAI["Responsible AI<br/><span class='svc'>fairness · explain</span>"]
+  ONLINE["Online Endpoint<br/><span class='svc'>real-time</span>"]
+  BATCH["Batch Endpoint<br/><span class='svc'>high-throughput</span>"]
+  ROLLOUT["Blue/Green<br/><span class='svc'>traffic split · rollback</span>"]
+  DRIFT["Data Drift Monitor"]
+  ALERT["Retrain / Alert Trigger"]
+  DATA -->|train| TRAIN
+  AUTOML -->|explore| TRAIN
+  SWEEP -->|tune| TRAIN
+  TRAIN -->|log| MLFLOW
+  MLFLOW -->|compare| REG
+  REG -->|evaluate| RAI
+  REG -->|deploy| ONLINE
+  REG -->|deploy| BATCH
+  ONLINE -->|rollout| ROLLOUT
+  ONLINE -->|monitor| DRIFT
+  DRIFT -->|threshold| ALERT
+  ALERT -. retrain .-> TRAIN`,
+    core:["MLFLOW","AUTOML","REG","ONLINE","BATCH","DRIFT"],
+    services:["MLflow","AutoML","Sweep jobs","Pipeline jobs","Online endpoints","Batch endpoints","Model monitoring","Responsible AI"],
+    notes:[
+      ["Training pipelines","Pipeline & command jobs","Run training scripts as command jobs; chain reusable components into pipelines; scale with distributed training for large/deep models.","Components are versioned, typed steps; supports PyTorch DDP / MPI."],
+      ["AutoML","Automated ML","Auto-explore algorithms + featurization to find an optimal model.","Outputs an MLflow model; strong baseline for classic ML tasks."],
+      ["Hyperparameter tuning","Sweep jobs","Search the HP space (grid / random / Bayesian) with early-termination policies.","Know sweep config + early stopping (bandit / median)."],
+      ["Experiment tracking","MLflow","Log params, metrics and artifacts per run; compare model performance across jobs.","MLflow autolog; compare runs to choose the best model."],
+      ["Registration & versioning","Model registry","Register MLflow models with versions; package a feature-retrieval spec with the artifact; archive old versions.","'Package a feature retrieval spec with the model' is named & testable."],
+      ["Responsible AI","RAI dashboard","Evaluate fairness, error analysis and interpretability before promotion.","RAI evaluation is explicitly listed for registration."],
+      ["Online endpoints","Managed online endpoint","Real-time, low-latency REST inference with autoscale and per-deployment traffic.","Online = real-time; blue/green via deployments + traffic %."],
+      ["Batch endpoints","Batch endpoint","Asynchronous, high-throughput scoring over large datasets on clusters.","Batch = large volumes, not latency-sensitive."],
+      ["Safe rollout","Blue/green · traffic split","Shift a % of traffic to a new deployment; mirror traffic; roll back instantly.","Know gradual % shift, mirrored traffic, and rollback."],
+      ["Data drift","Model monitoring","Detect distribution shift between training and production data; analyze feature drift.","Drift signals when to retrain; monitor on a schedule."],
+      ["Retrain / alerts","Alerts · triggers","Configure thresholds that fire alerts or trigger automated retraining.","Close the loop: drift/perf breach → retrain trigger."]
+    ]
+  },
+  {
+    key:"genaiops", name:"GenAIOps Infrastructure", color:"#a78bfa", colorLight:"#6d28d9", weight:"20–25%", w:22.5,
+    blurb:"Stand up Microsoft Foundry and operationalize foundation models and prompts for production generative AI.",
+    mer:`flowchart TB
+  BICEP["Bicep + Azure CLI<br/><span class='svc'>IaC</span>"]
+  FOUNDRY["Microsoft Foundry<br/><span class='svc'>resource + project</span>"]
+  RBAC["Managed Identity · RBAC"]
+  NET["Private Networking"]
+  MODELS["Foundation Models<br/><span class='svc'>model catalog</span>"]
+  SERVERLESS["Serverless API<br/><span class='svc'>pay-as-you-go</span>"]
+  MANAGED["Managed Compute<br/><span class='svc'>dedicated</span>"]
+  PTU["Provisioned Throughput<br/><span class='svc'>PTU · reserved</span>"]
+  PROMPT["Prompt Management<br/><span class='svc'>variants · compare</span>"]
+  GIT["Git<br/><span class='svc'>prompt versioning</span>"]
+  BICEP -->|provision| FOUNDRY
+  FOUNDRY -->|secure| RBAC
+  FOUNDRY -->|isolate| NET
+  FOUNDRY -->|deploy| MODELS
+  MODELS -->|serve| SERVERLESS
+  MODELS -->|serve| MANAGED
+  SERVERLESS -->|scale| PTU
+  FOUNDRY -->|author| PROMPT
+  PROMPT -->|version| GIT`,
+    core:["FOUNDRY","MODELS","SERVERLESS","PTU","PROMPT","RBAC"],
+    services:["Microsoft Foundry","Model catalog","Serverless API","Managed compute","PTU","Managed Identity","Bicep / Azure CLI"],
+    notes:[
+      ["Foundry environment","Microsoft Foundry","Create and configure Foundry resources and project environments hosting GenAI apps and agents.","Foundry (formerly Azure AI Foundry/Studio) is the GenAI control plane."],
+      ["IaC for Foundry","Bicep · Azure CLI","Provision Foundry resources declaratively from templates.","Same IaC theme as Domain 1 — Bicep + CLI."],
+      ["Identity & access","Managed Identity · RBAC","Secure Foundry with managed identities and RBAC roles.","Least-privilege; managed identity over keys."],
+      ["Network security","Private networking","Lock down Foundry with private endpoints and network isolation.","Private networking configuration is explicitly listed."],
+      ["Foundation models","Model catalog","Deploy from the catalog; select the right model per use case (latency / cost / capability).","Match model to task; know catalog vs fine-tuned."],
+      ["Serverless API","Serverless endpoint","Deploy models as pay-as-you-go serverless API endpoints (MaaS).","Serverless = no infra mgmt, token-billed."],
+      ["Managed compute","Managed compute","Deploy on dedicated managed compute for control and isolation.","Serverless vs managed compute is a key trade-off question."],
+      ["Provisioned throughput","PTU","Reserve provisioned throughput units for predictable high-volume latency.","PTU = reserved capacity for steady high volume vs pay-as-you-go."],
+      ["Prompt management","Prompt variants","Design prompts, create variants, and compare performance across them.","Prompt engineering + variant comparison is named."],
+      ["Prompt versioning","Git","Version-control prompts in Git alongside application code.","Treat prompts as code — Git versioning is explicit."]
+    ]
+  },
+  {
+    key:"qa", name:"GenAI QA & Observability", color:"#fbbf3c", colorLight:"#b45309", weight:"10–15%", w:12.5,
+    blurb:"Prove generative AI quality and safety with structured evaluation, then observe latency, cost and traces in production.",
+    mer:`flowchart TB
+  TESTSET[("Test Dataset<br/><span class='svc'>+ data mapping</span>")]
+  EVAL["Evaluation Workflow<br/><span class='svc'>built-in + custom</span>"]
+  QUALITY["Quality Metrics<br/><span class='svc'>groundedness · relevance<br/>coherence · fluency</span>"]
+  SAFETY["Risk & Safety<br/><span class='svc'>harmful content</span>"]
+  MONITOR["Continuous Monitoring<br/><span class='svc'>Foundry</span>"]
+  PERF["Perf Metrics<br/><span class='svc'>latency · throughput</span>"]
+  COST["Cost Metrics<br/><span class='svc'>tokens · usage</span>"]
+  TRACE["Logging · Tracing<br/><span class='svc'>debugging</span>"]
+  TESTSET -->|run| EVAL
+  EVAL -->|score| QUALITY
+  EVAL -->|score| SAFETY
+  EVAL -->|deploy| MONITOR
+  MONITOR -->|track| PERF
+  MONITOR -->|track| COST
+  MONITOR -->|capture| TRACE`,
+    core:["EVAL","QUALITY","SAFETY","MONITOR","COST"],
+    services:["Foundry evaluations","Quality metrics","Safety evaluators","Continuous monitoring","Tracing"],
+    notes:[
+      ["Test datasets","Test data + mapping","Build evaluation datasets and map fields to the app's inputs/outputs for comprehensive eval.","Data mapping connects dataset columns to eval inputs."],
+      ["Evaluation workflow","Built-in + custom evaluators","Run automated evaluation with built-in and custom metrics over test sets.","Know built-in evaluators and how to add custom ones."],
+      ["Quality metrics","Groundedness · Relevance · Coherence · Fluency","Score output quality; groundedness checks the answer is supported by retrieved context.","Memorize these four — the most testable metric names."],
+      ["Risk & safety","Safety evaluators","Detect harmful content (violence, hate, self-harm, sexual) and jailbreak risk.","Risk & safety is distinct from quality evaluation."],
+      ["Continuous monitoring","Foundry monitoring","Continuously monitor deployed GenAI apps and agents in production.","Foundry has built-in continuous monitoring."],
+      ["Performance metrics","Latency · Throughput","Track latency, throughput and response times of GenAI endpoints.","Operational metrics, not just output quality."],
+      ["Cost metrics","Token consumption","Track and optimize token usage and resource cost.","Tokens = cost; watch consumption and PTU utilization."],
+      ["Logging & tracing","Tracing · debugging","Capture detailed logs and traces for production troubleshooting of chains and agents.","Trace across RAG / agent steps for debugging."]
+    ]
+  },
+  {
+    key:"optimize", name:"Optimize GenAI & Models", color:"#fb7185", colorLight:"#be123c", weight:"10–15%", w:12.5,
+    blurb:"Squeeze accuracy and cost out of generative systems — tune RAG retrieval and fine-tune models for the domain.",
+    mer:`flowchart TB
+  RAG["RAG Pipeline<br/><span class='svc'>retrieval-augmented</span>"]
+  RETRIEVE["Retrieval Tuning<br/><span class='svc'>chunk · threshold · top-k</span>"]
+  EMBED["Embedding Models<br/><span class='svc'>select · fine-tune</span>"]
+  HYBRID["Hybrid Search<br/><span class='svc'>semantic + keyword</span>"]
+  ABTEST["A/B Testing<br/><span class='svc'>relevance metrics</span>"]
+  FT["Fine-tuning<br/><span class='svc'>advanced methods</span>"]
+  SYNTH["Synthetic Data"]
+  FTMON["Fine-tuned Monitoring"]
+  PROD["Dev → Production"]
+  RAG -->|tune| RETRIEVE
+  RETRIEVE -->|embed| EMBED
+  RETRIEVE -->|combine| HYBRID
+  HYBRID -->|evaluate| ABTEST
+  FT -->|generate| SYNTH
+  SYNTH -->|train| FT
+  FT -->|monitor| FTMON
+  FTMON -->|promote| PROD`,
+    core:["RETRIEVE","EMBED","HYBRID","FT","SYNTH"],
+    services:["RAG","Embeddings","Hybrid search","Fine-tuning","Synthetic data","A/B testing"],
+    notes:[
+      ["RAG pipeline","Retrieval-augmented generation","Ground the model with retrieved context — the core pattern this domain optimizes.","RAG optimization is the bulk of Domain 5."],
+      ["Retrieval tuning","Chunk size · thresholds","Tune chunk size/overlap, similarity thresholds and retrieval strategy (top-k).","Chunking and similarity threshold are explicit knobs."],
+      ["Embedding models","Embeddings","Select and fine-tune embedding models for domain-specific accuracy.","Domain-specific embeddings improve recall."],
+      ["Hybrid search","Semantic + keyword","Combine vector (semantic) with keyword/BM25 retrieval for better recall.","Hybrid search is named verbatim."],
+      ["A/B testing","Relevance metrics","Evaluate and compare RAG variants with relevance metrics and A/B frameworks.","Prove gains with relevance metrics + A/B testing."],
+      ["Fine-tuning","Advanced fine-tuning","Apply advanced fine-tuning to customize a model beyond prompting.","Know when to fine-tune vs RAG vs prompt."],
+      ["Synthetic data","Synthetic dataset","Create and manage synthetic data to fine-tune when real data is scarce.","Synthetic data for fine-tuning is explicitly listed."],
+      ["Fine-tune monitoring","Performance monitoring","Monitor and optimize fine-tuned model performance over time.","Track quality and cost of the fine-tuned model."],
+      ["Promote to prod","Dev → production","Manage a fine-tuned model from development through production deployment.","End-to-end lifecycle of the fine-tuned model."]
+    ]
+  }
+];
+const ALL=[MASTER,...DOMAINS];
+
+const NODEMAP={
+  master:[["INFRA"],["BUILD"],["REG"],["DEPLOY"],["EVAL"],["OBS"],["OPT"]],
+  infra:[["WS"],["DS"],["COMPUTE"],["RBAC"],["ASSETS"],["REGISTRY"],["GIT","GHA"],["BICEP"],["NET"]],
+  lifecycle:[["DATA","TRAIN"],["AUTOML"],["SWEEP"],["MLFLOW"],["REG"],["RAI"],["ONLINE"],["BATCH"],["ROLLOUT"],["DRIFT"],["ALERT"]],
+  genaiops:[["FOUNDRY"],["BICEP"],["RBAC"],["NET"],["MODELS"],["SERVERLESS"],["MANAGED"],["PTU"],["PROMPT"],["GIT"]],
+  qa:[["TESTSET"],["EVAL"],["QUALITY"],["SAFETY"],["MONITOR"],["PERF"],["COST"],["TRACE"]],
+  optimize:[["RAG"],["RETRIEVE"],["EMBED"],["HYBRID"],["ABTEST"],["FT"],["SYNTH"],["FTMON"],["PROD"]]
+};
+
+/* ---------- weighting strip ---------- */
+document.getElementById("wstrip").innerHTML = DOMAINS.map(d=>`
+  <div class="wcard" style="--wc:${d.color}">
+    <div class="wn"><span>${d.name}</span><b>${d.weight}</b></div>
+    <div class="wbar"><i style="width:${d.w/30*100}%"></i></div>
+  </div>`).join("");
+
+/* ---------- tabs ---------- */
+const tabsEl=document.getElementById("tabs");
+tabsEl.innerHTML = ALL.map((s,i)=>`
+  <div class="tab" role="tab" data-i="${i}" style="--tc:${s.color}" aria-selected="${i===0}"><i></i>${s.name}</div>`).join("");
+
+/* ---------- theme + mermaid ---------- */
+let theme="dark", current=MASTER, curKey="master", nodeEls={};
+const root=document.documentElement;
+function mermaidConfig(){
+  const dark=theme==="dark";
+  return {startOnLoad:false,securityLevel:"loose",theme:"base",fontFamily:"ui-monospace, Menlo, monospace",
+    flowchart:{htmlLabels:true,curve:"basis",nodeSpacing:42,rankSpacing:52,padding:8},
+    themeVariables:{background:"transparent",
+      primaryColor:dark?"#172238":"#ffffff",primaryBorderColor:dark?"#34425f":"#cdd7e8",primaryTextColor:dark?"#e9eefb":"#16203a",
+      lineColor:dark?"#62719a":"#8b97b3",clusterBkg:dark?"#0d1322":"#f3f6fc",clusterBorder:dark?"#283450":"#d4dcec",
+      titleColor:dark?"#94a2c2":"#54607c",edgeLabelBackground:dark?"#0a0e18":"#f5f7fb",fontSize:"12.5px"}};
+}
+async function drawDiagram(s){
+  curKey=s.key;
+  const el=document.getElementById("diagram");
+  if(!window.mermaid){el.innerHTML='<p style="color:var(--ink-dim);font-family:var(--mono);font-size:12px">Diagram engine unavailable offline — notes are in the panel.</p>';return;}
+  const accent=theme==="dark"?s.color:s.colorLight;
+  const cf=getComputedStyle(root).getPropertyValue("--core-fill").trim();
+  const ct=getComputedStyle(root).getPropertyValue("--core-text").trim();
+  let def=s.mer.trim();
+  def+=`\n  classDef hot fill:${cf},stroke:${accent},stroke-width:2.5px,color:${ct};`;
+  if(s.core&&s.core.length) def+=`\n  class ${s.core.join(",")} hot;`;
+  mermaid.initialize(mermaidConfig());
+  try{
+    const {svg}=await mermaid.render("d"+Math.random().toString(36).slice(2),def);
+    el.innerHTML=svg; wireNodes();
+  }catch(e){el.innerHTML='<p style="color:var(--bad);font-family:var(--mono);font-size:12px">Diagram failed to render.</p>';console.error(e);}
+}
+function render(s){
+  current=s;
+  const accent=theme==="dark"?s.color:s.colorLight;
+  root.style.setProperty("--c",accent);
+  document.getElementById("title").innerHTML = s.key==="master"?`<b>AIOps</b> lifecycle`:`<b>${s.name}</b>`;
+  const notes=s.notes||[];
+  const acc=notes.map((n,i)=>{
+    const tip=n[3]?`<div class="cmeta"><span class="ck">Exam</span><span>${n[3]}</span></div>`:"";
+    return `<details class="cbox"${i===0?" open":""}><summary><span class="cn">${n[0]}</span>${n[1]?`<em class="cf">${n[1]}</em>`:""}</summary><div class="cbody"><div class="cp">${n[2]}</div>${tip}</div></details>`;
+  }).join("");
+  let html;
+  if(s.key==="master"){
+    const factsHTML=FACTS.map(f=>`<div class="fact"><span class="fk">${f[0]}</span><span class="fv">${f[1]}</span></div>`).join("");
+    const bars=DOMAINS.map(d=>`<div class="wrow"><div class="wl"><b>${d.name}</b><span>${d.weight}</span></div><div class="wbar2"><i style="width:${d.w/30*100}%;background:${theme==="dark"?d.color:d.colorLight}"></i></div></div>`).join("");
+    html=`<div class="ex">EXAM BLUEPRINT</div><h2>AI-300 Lifecycle</h2><div class="tag">${s.blurb}</div>
+      <div class="sec"><h3>Exam facts</h3><div class="facts">${factsHTML}</div></div>
+      <div class="sec"><h3>Domain weightings</h3><div class="wbig">${bars}</div></div>
+      <div class="sec"><h3>Lifecycle stages</h3>${acc}</div>`;
+  }else{
+    html=`<div class="ex">DOMAIN · ${s.weight}</div><h2>${s.name}</h2><div class="tag">${s.blurb}</div>
+      <div class="sec"><h3>Azure services</h3><ul class="lst">${(s.services||[]).map(x=>`<li>${x}</li>`).join("")}</ul></div>
+      <div class="sec"><h3>Skills · what to know / exam tip</h3>${acc}</div>`;
+  }
+  document.getElementById("panel").innerHTML=html;
+  drawDiagram(s);
+}
+
+/* ---------- highlighting ---------- */
+function nodeIdOf(g){const p=(g.id||"").split("-");if(p.length<2)return g.id||"";const last=p[p.length-1];return(/^\d+$/.test(last)?p.slice(1,-1):p.slice(1)).join("-");}
+function clearHL(){document.querySelectorAll("#diagram g.node.hl").forEach(g=>g.classList.remove("hl"));document.querySelectorAll("#panel details.cbox.hl").forEach(d=>d.classList.remove("hl"));}
+function activate(ci,forceOpen){const map=NODEMAP[curKey]||[];clearHL();(map[ci]||[]).forEach(id=>{const g=nodeEls[id];if(g)g.classList.add("hl");});const d=document.querySelectorAll("#panel details.cbox")[ci];if(d){if(forceOpen)d.open=true;d.classList.add("hl");d.scrollIntoView({block:"nearest"});}}
+function activateByNode(nid){const map=NODEMAP[curKey]||[];for(let ci=0;ci<map.length;ci++){if(map[ci]&&map[ci].includes(nid)){activate(ci,true);return;}}}
+function wireNodes(){nodeEls={};const svg=document.querySelector("#diagram svg");if(!svg)return;svg.querySelectorAll("g.node").forEach(g=>{const nid=nodeIdOf(g);nodeEls[nid]=g;g.style.cursor="pointer";g.addEventListener("click",()=>activateByNode(nid));});}
+document.getElementById("panel").addEventListener("click",e=>{const sm=e.target.closest("summary");if(!sm)return;const d=sm.closest("details.cbox");if(!d)return;const ci=[...document.querySelectorAll("#panel details.cbox")].indexOf(d);if(ci>=0)activate(ci,false);});
+
+/* ---------- theme toggle ---------- */
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const btn=document.getElementById("themeBtn");
+function lbl(){btn.innerHTML=(theme==="dark"?MOON+"<span>Dark</span>":SUN+"<span>Light</span>");}
+btn.addEventListener("click",()=>{theme=theme==="dark"?"light":"dark";root.setAttribute("data-theme",theme);lbl();render(current);});
+lbl();
+
+tabsEl.addEventListener("click",e=>{const t=e.target.closest(".tab");if(!t)return;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected","false"));t.setAttribute("aria-selected","true");render(ALL[+t.dataset.i]);});
+tabsEl.addEventListener("keydown",e=>{if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft")return;const sel=document.querySelector('.tab[aria-selected="true"]');let i=(+sel.dataset.i+(e.key==="ArrowRight"?1:-1)+ALL.length)%ALL.length;document.querySelectorAll(".tab")[i].click();});
+
+render(MASTER);
+</script>
+</body>
+</html>
